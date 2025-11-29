@@ -30,7 +30,9 @@ if cargo fmt --all -- --check > /dev/null 2>&1; then
 else
     echo -e "${YELLOW}Warning:${NC} Code needs formatting, auto-formatting now..."
     cargo fmt --all
-    echo -e "${GREEN}Done${NC} Code formatted successfully"
+    # Re-add formatted files to staging area so they're included in the commit
+    git add -u
+    echo -e "${GREEN}Done${NC} Code formatted and staged"
 fi
 
 # Check 2: Run clippy
