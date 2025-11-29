@@ -30,6 +30,36 @@ When creating pull requests:
 - **Always link to the related issue** using "Closes #123" in the PR body
 - Use the PR template provided
 
+### Always Update Documentation Before Pushing
+
+Before creating any pull request, **always verify and update** the following files if they contain relevant information:
+
+1. **CHANGELOG.md**
+   - Add entry under the appropriate version section
+   - Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format
+   - Categories: Added, Changed, Deprecated, Removed, Fixed, Security
+   - Include issue/PR references (e.g., `#29`, `#30`)
+   - Mark breaking changes with **BREAKING**
+
+2. **README.md**
+   - Update if adding new features or changing public API
+   - Add examples for new functionality
+   - Update installation instructions if version requirements change
+   - Keep feature list current
+
+3. **CLAUDE.md** (this file)
+   - Update if changing development workflows
+   - Add new project conventions or patterns
+   - Update architecture diagrams if structure changes
+   - Add new common development tasks
+
+**Checklist before pushing:**
+- [ ] CHANGELOG.md updated with changes
+- [ ] README.md reflects new features/changes
+- [ ] CLAUDE.md updated if workflow/conventions changed
+- [ ] All examples in documentation tested
+- [ ] Version numbers consistent across files
+
 ---
 
 ## Project Overview
