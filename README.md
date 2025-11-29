@@ -120,6 +120,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Automatic Plan Diff Computation
+
+The SDK provides automatic diff computation to simplify plan implementation. Instead of manually constructing `AttributeChange` instances, use `PlanResult::from_diff()`:
+
+```rust
+async fn plan(
+    &self,
+    resource_type: &str,
+    prior_state: Option<serde_json::Value>,
+    proposed_state: serde_json::Value,
+    config: serde_json::Value,
+) -> Result<PlanResult, ProviderError> {
+    // Automatically compute all changes between prior and proposed states
+    Ok(PlanResult::from_diff(prior_state.as_ref(), &proposed_state))
+}
+```
+
+The `from_diff()` method:
+- Automatically detects all changes between prior and proposed states
+- Supports nested objects with dot-notation paths (e.g., `"metadata.labels.app"`)
+- Supports arrays with bracket notation (e.g., `"tags[0]"`)
+- Returns `no_change` when states are identical
+- Marks all fields as added when creating new resources
+- Properly handles field additions, removals, and modifications
+
+### Manual Plan Construction
+
+For advanced use cases where you need custom logic or want to mark specific changes as requiring replacement, you can still construct plans manually:
+
+```rust
+use hemmer_provider_sdk::{PlanResult, AttributeChange};
+
+// Manual construction with requires_replace flag
+let mut result = PlanResult::from_diff(prior_state.as_ref(), &proposed_state);
+
+// Check if immutable field changed and mark as requiring replacement
+if let Some(prior) = prior_state.as_ref() {
+    if prior.get("ami") != proposed_state.get("ami") {
+        result.requires_replace = true;
+    }
+}
+
+Ok(result)
+```
+
 ## Provider Protocol
 
 The SDK implements a complete provider protocol with the following RPCs:
