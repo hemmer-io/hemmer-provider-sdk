@@ -187,7 +187,40 @@ Format: `HEMMER_PROVIDER|<protocol_version>|<address>`
 
 This allows Hemmer to spawn the provider as a subprocess and connect via gRPC.
 
-## Development
+## Contributing
+
+### Quick Setup
+
+```bash
+# Clone and setup development environment
+git clone https://github.com/hemmer-io/hemmer-provider-sdk
+cd hemmer-provider-sdk
+./scripts/setup.sh
+```
+
+The setup script will:
+- Install git pre-commit hooks
+- Verify your Rust toolchain
+- Run an initial build and test
+
+### Development Workflow
+
+```bash
+# Build
+cargo build
+
+# Run tests
+cargo test
+
+# Run linter
+cargo clippy --all-targets -- -D warnings
+
+# Format code
+cargo fmt --all
+
+# View documentation
+cargo doc --no-deps --open
+```
 
 ### Regenerating Proto Types
 
@@ -198,20 +231,20 @@ Proto types are pre-compiled and committed. To regenerate after changing `proto/
 cargo build --features regenerate-proto
 ```
 
-### Running Tests
+### Code Style
 
-```bash
-cargo test
-```
+- Follow standard Rust conventions (rustfmt, clippy)
+- Document public APIs with doc comments
+- Write tests for new functionality
+- Keep commits focused and atomic
 
-### Pre-commit Hooks
+### Pull Request Process
 
-Install the pre-commit hook for code quality checks:
-
-```bash
-cp scripts/pre-commit .git/hooks/
-chmod +x .git/hooks/pre-commit
-```
+1. Create a feature branch from `main`
+2. Make your changes with tests
+3. Ensure all checks pass (`cargo test`, `cargo clippy`, `cargo fmt --check`)
+4. Submit a PR using the template
+5. Address review feedback
 
 ## Related Projects
 
