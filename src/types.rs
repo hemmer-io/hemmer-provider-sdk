@@ -155,11 +155,62 @@ pub struct ServerCapabilities {
     pub plan_destroy: bool,
 }
 
-/// The protocol version for the handshake.
+/// The current protocol version.
+///
+/// This should be incremented when making breaking changes to the gRPC service definition.
 pub const PROTOCOL_VERSION: u32 = 1;
+
+/// The minimum supported protocol version for backwards compatibility.
+///
+/// Providers should reject connections from clients using protocol versions
+/// older than this value.
+pub const MIN_PROTOCOL_VERSION: u32 = 1;
 
 /// The handshake prefix output by providers.
 pub const HANDSHAKE_PREFIX: &str = "HEMMER_PROVIDER";
+
+/// Checks if a client protocol version is compatible with this provider.
+///
+/// Returns `Ok(())` if the client version is compatible, or an error message if not.
+///
+/// # Arguments
+///
+/// * `client_version` - The protocol version reported by the client
+///
+/// # Examples
+///
+/// ```
+/// use hemmer_provider_sdk::{check_protocol_version, PROTOCOL_VERSION};
+///
+/// // Current version is always compatible
+/// assert!(check_protocol_version(PROTOCOL_VERSION).is_ok());
+///
+/// // Older versions within MIN_PROTOCOL_VERSION range are compatible
+/// assert!(check_protocol_version(1).is_ok());
+///
+/// // Versions below minimum are rejected
+/// assert!(check_protocol_version(0).is_err());
+/// ```
+pub fn check_protocol_version(client_version: u32) -> Result<(), String> {
+    if client_version < MIN_PROTOCOL_VERSION {
+        return Err(format!(
+            "Client protocol version {} is too old. Minimum supported version is {}",
+            client_version, MIN_PROTOCOL_VERSION
+        ));
+    }
+
+    if client_version > PROTOCOL_VERSION {
+        // Client is newer than us - we'll try to be compatible
+        // but warn that the client might expect features we don't support
+        tracing::warn!(
+            client_version = client_version,
+            server_version = PROTOCOL_VERSION,
+            "Client protocol version is newer than server version. Some features may not be available."
+        );
+    }
+
+    Ok(())
+}
 
 #[cfg(test)]
 mod tests {
@@ -226,6 +277,33 @@ mod tests {
     #[test]
     fn test_protocol_constants() {
         assert_eq!(PROTOCOL_VERSION, 1);
+        assert_eq!(MIN_PROTOCOL_VERSION, 1);
         assert_eq!(HANDSHAKE_PREFIX, "HEMMER_PROVIDER");
+    }
+
+    #[test]
+    fn test_check_protocol_version_current() {
+        // Current version should always be compatible
+        assert!(check_protocol_version(PROTOCOL_VERSION).is_ok());
+    }
+
+    #[test]
+    fn test_check_protocol_version_minimum() {
+        // Minimum version should be compatible
+        assert!(check_protocol_version(MIN_PROTOCOL_VERSION).is_ok());
+    }
+
+    #[test]
+    fn test_check_protocol_version_too_old() {
+        // Version below minimum should be rejected
+        let result = check_protocol_version(0);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("too old"));
+    }
+
+    #[test]
+    fn test_check_protocol_version_newer() {
+        // Newer version should be accepted (with warning)
+        assert!(check_protocol_version(PROTOCOL_VERSION + 1).is_ok());
     }
 }

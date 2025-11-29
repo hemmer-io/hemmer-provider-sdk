@@ -36,7 +36,7 @@ When creating pull requests:
 
 The Hemmer Provider SDK is a Rust library for building providers that integrate with [Hemmer](https://github.com/hemmer-io/hemmer), a next-generation Infrastructure as Code tool. It provides:
 
-- **gRPC Protocol**: Complete provider protocol similar to Terraform's tfprotov6
+- **gRPC Protocol**: Complete provider protocol for infrastructure management
 - **Schema System**: Types for defining resource and data source schemas
 - **Server Helpers**: Functions to start a gRPC server with handshake protocol
 - **Error Types**: Common error types for provider implementations

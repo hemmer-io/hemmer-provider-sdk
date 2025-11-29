@@ -160,16 +160,23 @@ pub struct ServerCapabilities {
     pub plan_destroy: bool,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetSchemaRequest {}
+pub struct GetSchemaRequest {
+    /// Protocol version of the calling client
+    #[prost(uint32, tag = "1")]
+    pub client_protocol_version: u32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSchemaResponse {
-    #[prost(message, optional, tag = "1")]
+    /// Protocol version of this provider
+    #[prost(uint32, tag = "1")]
+    pub server_protocol_version: u32,
+    #[prost(message, optional, tag = "2")]
     pub provider: ::core::option::Option<Schema>,
-    #[prost(map = "string, message", tag = "2")]
-    pub resources: ::std::collections::HashMap<::prost::alloc::string::String, Schema>,
     #[prost(map = "string, message", tag = "3")]
+    pub resources: ::std::collections::HashMap<::prost::alloc::string::String, Schema>,
+    #[prost(map = "string, message", tag = "4")]
     pub data_sources: ::std::collections::HashMap<::prost::alloc::string::String, Schema>,
-    #[prost(message, repeated, tag = "4")]
+    #[prost(message, repeated, tag = "5")]
     pub diagnostics: ::prost::alloc::vec::Vec<Diagnostic>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

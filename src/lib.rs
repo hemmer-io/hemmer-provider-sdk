@@ -1,8 +1,7 @@
 //! Hemmer Provider SDK
 //!
 //! This crate provides the gRPC protocol types and server helpers for building
-//! Hemmer providers. It follows the pattern established by
-//! [terraform-plugin-go](https://github.com/hashicorp/terraform-plugin-go).
+//! Hemmer providers.
 //!
 //! # Overview
 //!
@@ -106,7 +105,7 @@
 //!
 //! # Provider Protocol
 //!
-//! The SDK implements a complete provider protocol similar to Terraform's:
+//! The SDK implements a complete provider protocol with the following RPCs:
 //!
 //! - **GetMetadata**: Returns provider capabilities and resource/data source names
 //! - **GetSchema**: Returns full schema for provider config, resources, and data sources
@@ -144,8 +143,8 @@ pub use server::{
     serve, serve_on, serve_on_with_options, serve_with_options, ProviderService, ServeOptions,
 };
 pub use types::{
-    AttributeChange, ImportedResource, PlanResult, ProviderMetadata, ServerCapabilities,
-    HANDSHAKE_PREFIX, PROTOCOL_VERSION,
+    check_protocol_version, AttributeChange, ImportedResource, PlanResult, ProviderMetadata,
+    ServerCapabilities, HANDSHAKE_PREFIX, MIN_PROTOCOL_VERSION, PROTOCOL_VERSION,
 };
 pub use validation::{is_valid, validate, validate_result};
 

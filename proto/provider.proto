@@ -131,13 +131,16 @@ message ServerCapabilities {
 // GetSchema
 // ============================================================================
 
-message GetSchemaRequest {}
+message GetSchemaRequest {
+  uint32 client_protocol_version = 1;  // Protocol version of the calling client
+}
 
 message GetSchemaResponse {
-  Schema provider = 1;
-  map<string, Schema> resources = 2;
-  map<string, Schema> data_sources = 3;
-  repeated Diagnostic diagnostics = 4;
+  uint32 server_protocol_version = 1;  // Protocol version of this provider
+  Schema provider = 2;
+  map<string, Schema> resources = 3;
+  map<string, Schema> data_sources = 4;
+  repeated Diagnostic diagnostics = 5;
 }
 
 // ============================================================================
