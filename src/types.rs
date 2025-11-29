@@ -116,6 +116,306 @@ impl PlanResult {
             requires_replace,
         }
     }
+
+    /// Automatically compute attribute changes by comparing prior and proposed states.
+    ///
+    /// This method walks both JSON trees and emits an `AttributeChange` for each difference.
+    /// Nested objects use dot-notation paths (e.g., `"metadata.labels.app"`).
+    ///
+    /// # Arguments
+    ///
+    /// * `prior` - The previous state (None if creating a new resource)
+    /// * `proposed` - The desired new state
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hemmer_provider_sdk::PlanResult;
+    /// use serde_json::json;
+    ///
+    /// // Creating a new resource
+    /// let result = PlanResult::from_diff(None, &json!({"name": "test", "count": 1}));
+    /// assert_eq!(result.changes.len(), 2);
+    ///
+    /// // Updating a resource
+    /// let prior = json!({"name": "old", "count": 1});
+    /// let proposed = json!({"name": "new", "count": 1});
+    /// let result = PlanResult::from_diff(Some(&prior), &proposed);
+    /// assert_eq!(result.changes.len(), 1);
+    /// assert_eq!(result.changes[0].path, "name");
+    ///
+    /// // No changes
+    /// let state = json!({"name": "same"});
+    /// let result = PlanResult::from_diff(Some(&state), &state);
+    /// assert!(result.changes.is_empty());
+    /// ```
+    pub fn from_diff(prior: Option<&serde_json::Value>, proposed: &serde_json::Value) -> Self {
+        match prior {
+            None => {
+                // Creating new resource - all fields are additions
+                let changes = collect_all_fields("", proposed);
+                Self {
+                    planned_state: proposed.clone(),
+                    changes,
+                    requires_replace: false,
+                }
+            }
+            Some(prior_state) => {
+                let changes = compute_json_diff("", prior_state, proposed);
+                Self {
+                    planned_state: proposed.clone(),
+                    changes,
+                    requires_replace: false,
+                }
+            }
+        }
+    }
+}
+
+/// Recursively collect all fields from a JSON value as additions.
+///
+/// Used when creating a new resource to mark all fields as added.
+fn collect_all_fields(prefix: &str, value: &serde_json::Value) -> Vec<AttributeChange> {
+    use serde_json::Value;
+
+    match value {
+        Value::Object(map) => {
+            let mut changes = Vec::new();
+            for (key, val) in map {
+                let path = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{}.{}", prefix, key)
+                };
+
+                match val {
+                    Value::Object(_) | Value::Array(_) => {
+                        // Recursively collect nested fields
+                        changes.extend(collect_all_fields(&path, val));
+                    }
+                    _ => {
+                        // Leaf value
+                        changes.push(AttributeChange::added(path, val.clone()));
+                    }
+                }
+            }
+            changes
+        }
+        Value::Array(arr) => {
+            let mut changes = Vec::new();
+            for (idx, val) in arr.iter().enumerate() {
+                let path = if prefix.is_empty() {
+                    format!("[{}]", idx)
+                } else {
+                    format!("{}[{}]", prefix, idx)
+                };
+
+                match val {
+                    Value::Object(_) | Value::Array(_) => {
+                        changes.extend(collect_all_fields(&path, val));
+                    }
+                    _ => {
+                        changes.push(AttributeChange::added(path, val.clone()));
+                    }
+                }
+            }
+            changes
+        }
+        _ => {
+            // Scalar value at root
+            if !prefix.is_empty() {
+                vec![AttributeChange::added(prefix, value.clone())]
+            } else {
+                vec![]
+            }
+        }
+    }
+}
+
+/// Recursively compute differences between two JSON values.
+///
+/// Returns a list of `AttributeChange` objects representing all differences.
+/// Nested objects use dot-notation paths (e.g., `"spec.replicas"`).
+/// Array elements use bracket notation (e.g., `"items[0].name"`).
+fn compute_json_diff(
+    prefix: &str,
+    prior: &serde_json::Value,
+    proposed: &serde_json::Value,
+) -> Vec<AttributeChange> {
+    use serde_json::Value;
+
+    // If values are identical, no changes
+    if prior == proposed {
+        return Vec::new();
+    }
+
+    match (prior, proposed) {
+        // Both are objects - recursively compare fields
+        (Value::Object(prior_map), Value::Object(proposed_map)) => {
+            let mut changes = Vec::new();
+
+            // Find all keys from both objects
+            let mut all_keys = std::collections::HashSet::new();
+            all_keys.extend(prior_map.keys());
+            all_keys.extend(proposed_map.keys());
+
+            for key in all_keys {
+                let path = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{}.{}", prefix, key)
+                };
+
+                match (prior_map.get(key), proposed_map.get(key)) {
+                    (Some(prior_val), Some(proposed_val)) => {
+                        // Field exists in both - check for differences
+                        if prior_val != proposed_val {
+                            match (prior_val, proposed_val) {
+                                (Value::Object(_), Value::Object(_))
+                                | (Value::Array(_), Value::Array(_)) => {
+                                    // Recursively diff nested structures
+                                    changes.extend(compute_json_diff(
+                                        &path,
+                                        prior_val,
+                                        proposed_val,
+                                    ));
+                                }
+                                _ => {
+                                    // Different types or different leaf values
+                                    changes.push(AttributeChange::modified(
+                                        path,
+                                        prior_val.clone(),
+                                        proposed_val.clone(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    (Some(prior_val), None) => {
+                        // Field was removed
+                        match prior_val {
+                            Value::Object(_) | Value::Array(_) => {
+                                // Recursively mark all nested fields as removed
+                                for change in collect_all_fields(&path, prior_val) {
+                                    changes.push(AttributeChange::removed(
+                                        change.path,
+                                        change.after.unwrap(),
+                                    ));
+                                }
+                            }
+                            _ => {
+                                changes.push(AttributeChange::removed(path, prior_val.clone()));
+                            }
+                        }
+                    }
+                    (None, Some(proposed_val)) => {
+                        // Field was added
+                        match proposed_val {
+                            Value::Object(_) | Value::Array(_) => {
+                                // Recursively mark all nested fields as added
+                                changes.extend(collect_all_fields(&path, proposed_val));
+                            }
+                            _ => {
+                                changes.push(AttributeChange::added(path, proposed_val.clone()));
+                            }
+                        }
+                    }
+                    (None, None) => {
+                        // Should never happen
+                    }
+                }
+            }
+
+            changes
+        }
+        // Both are arrays - compare elements
+        (Value::Array(prior_arr), Value::Array(proposed_arr)) => {
+            let mut changes = Vec::new();
+            let max_len = prior_arr.len().max(proposed_arr.len());
+
+            for idx in 0..max_len {
+                let path = if prefix.is_empty() {
+                    format!("[{}]", idx)
+                } else {
+                    format!("{}[{}]", prefix, idx)
+                };
+
+                match (prior_arr.get(idx), proposed_arr.get(idx)) {
+                    (Some(prior_val), Some(proposed_val)) => {
+                        // Element exists in both arrays
+                        if prior_val != proposed_val {
+                            match (prior_val, proposed_val) {
+                                (Value::Object(_), Value::Object(_))
+                                | (Value::Array(_), Value::Array(_)) => {
+                                    changes.extend(compute_json_diff(
+                                        &path,
+                                        prior_val,
+                                        proposed_val,
+                                    ));
+                                }
+                                _ => {
+                                    changes.push(AttributeChange::modified(
+                                        path,
+                                        prior_val.clone(),
+                                        proposed_val.clone(),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                    (Some(prior_val), None) => {
+                        // Element was removed from array
+                        match prior_val {
+                            Value::Object(_) | Value::Array(_) => {
+                                for change in collect_all_fields(&path, prior_val) {
+                                    changes.push(AttributeChange::removed(
+                                        change.path,
+                                        change.after.unwrap(),
+                                    ));
+                                }
+                            }
+                            _ => {
+                                changes.push(AttributeChange::removed(path, prior_val.clone()));
+                            }
+                        }
+                    }
+                    (None, Some(proposed_val)) => {
+                        // Element was added to array
+                        match proposed_val {
+                            Value::Object(_) | Value::Array(_) => {
+                                changes.extend(collect_all_fields(&path, proposed_val));
+                            }
+                            _ => {
+                                changes.push(AttributeChange::added(path, proposed_val.clone()));
+                            }
+                        }
+                    }
+                    (None, None) => {
+                        // Should never happen
+                    }
+                }
+            }
+
+            changes
+        }
+        // Different types or different scalar values
+        _ => {
+            if !prefix.is_empty() {
+                vec![AttributeChange::modified(
+                    prefix,
+                    prior.clone(),
+                    proposed.clone(),
+                )]
+            } else {
+                // Root-level scalar change
+                vec![AttributeChange::modified(
+                    "(root)",
+                    prior.clone(),
+                    proposed.clone(),
+                )]
+            }
+        }
+    }
 }
 
 /// An imported resource.
@@ -305,5 +605,354 @@ mod tests {
     fn test_check_protocol_version_newer() {
         // Newer version should be accepted (with warning)
         assert!(check_protocol_version(PROTOCOL_VERSION + 1).is_ok());
+    }
+
+    #[test]
+    fn test_from_diff_create_simple() {
+        // Creating a new resource with simple fields
+        let proposed = serde_json::json!({
+            "name": "test",
+            "count": 42
+        });
+
+        let result = PlanResult::from_diff(None, &proposed);
+        assert_eq!(result.planned_state, proposed);
+        assert_eq!(result.changes.len(), 2);
+
+        // Check that both fields are marked as added
+        let paths: std::collections::HashSet<_> =
+            result.changes.iter().map(|c| c.path.as_str()).collect();
+        assert!(paths.contains("name"));
+        assert!(paths.contains("count"));
+
+        // Verify they're all additions
+        for change in &result.changes {
+            assert!(change.before.is_none());
+            assert!(change.after.is_some());
+        }
+    }
+
+    #[test]
+    fn test_from_diff_create_nested() {
+        // Creating a resource with nested objects
+        let proposed = serde_json::json!({
+            "name": "test",
+            "metadata": {
+                "labels": {
+                    "app": "myapp",
+                    "env": "prod"
+                }
+            }
+        });
+
+        let result = PlanResult::from_diff(None, &proposed);
+
+        // Should have changes for: name, metadata.labels.app, metadata.labels.env
+        assert_eq!(result.changes.len(), 3);
+
+        let paths: std::collections::HashSet<_> =
+            result.changes.iter().map(|c| c.path.as_str()).collect();
+        assert!(paths.contains("name"));
+        assert!(paths.contains("metadata.labels.app"));
+        assert!(paths.contains("metadata.labels.env"));
+    }
+
+    #[test]
+    fn test_from_diff_create_with_array() {
+        // Creating a resource with arrays
+        let proposed = serde_json::json!({
+            "name": "test",
+            "tags": ["web", "production"]
+        });
+
+        let result = PlanResult::from_diff(None, &proposed);
+
+        // Should have changes for: name, tags[0], tags[1]
+        assert_eq!(result.changes.len(), 3);
+
+        let paths: std::collections::HashSet<_> =
+            result.changes.iter().map(|c| c.path.as_str()).collect();
+        assert!(paths.contains("name"));
+        assert!(paths.contains("tags[0]"));
+        assert!(paths.contains("tags[1]"));
+    }
+
+    #[test]
+    fn test_from_diff_no_changes() {
+        // Updating with identical state
+        let state = serde_json::json!({
+            "name": "test",
+            "count": 42
+        });
+
+        let result = PlanResult::from_diff(Some(&state), &state);
+        assert_eq!(result.changes.len(), 0);
+        assert_eq!(result.planned_state, state);
+    }
+
+    #[test]
+    fn test_from_diff_simple_modification() {
+        // Modifying a single field
+        let prior = serde_json::json!({
+            "name": "old",
+            "count": 1
+        });
+
+        let proposed = serde_json::json!({
+            "name": "new",
+            "count": 1
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "name");
+        assert_eq!(change.before, Some(serde_json::json!("old")));
+        assert_eq!(change.after, Some(serde_json::json!("new")));
+    }
+
+    #[test]
+    fn test_from_diff_nested_modification() {
+        // Modifying a nested field
+        let prior = serde_json::json!({
+            "metadata": {
+                "labels": {
+                    "app": "oldapp",
+                    "env": "prod"
+                }
+            }
+        });
+
+        let proposed = serde_json::json!({
+            "metadata": {
+                "labels": {
+                    "app": "newapp",
+                    "env": "prod"
+                }
+            }
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "metadata.labels.app");
+        assert_eq!(change.before, Some(serde_json::json!("oldapp")));
+        assert_eq!(change.after, Some(serde_json::json!("newapp")));
+    }
+
+    #[test]
+    fn test_from_diff_add_field() {
+        // Adding a new field to existing resource
+        let prior = serde_json::json!({
+            "name": "test"
+        });
+
+        let proposed = serde_json::json!({
+            "name": "test",
+            "count": 42
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "count");
+        assert!(change.before.is_none());
+        assert_eq!(change.after, Some(serde_json::json!(42)));
+    }
+
+    #[test]
+    fn test_from_diff_remove_field() {
+        // Removing a field from existing resource
+        let prior = serde_json::json!({
+            "name": "test",
+            "count": 42
+        });
+
+        let proposed = serde_json::json!({
+            "name": "test"
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "count");
+        assert_eq!(change.before, Some(serde_json::json!(42)));
+        assert!(change.after.is_none());
+    }
+
+    #[test]
+    fn test_from_diff_add_nested_object() {
+        // Adding a nested object
+        let prior = serde_json::json!({
+            "name": "test"
+        });
+
+        let proposed = serde_json::json!({
+            "name": "test",
+            "metadata": {
+                "labels": {
+                    "app": "myapp"
+                }
+            }
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "metadata.labels.app");
+        assert!(change.before.is_none());
+        assert_eq!(change.after, Some(serde_json::json!("myapp")));
+    }
+
+    #[test]
+    fn test_from_diff_remove_nested_object() {
+        // Removing a nested object
+        let prior = serde_json::json!({
+            "name": "test",
+            "metadata": {
+                "labels": {
+                    "app": "myapp"
+                }
+            }
+        });
+
+        let proposed = serde_json::json!({
+            "name": "test"
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "metadata.labels.app");
+        assert_eq!(change.before, Some(serde_json::json!("myapp")));
+        assert!(change.after.is_none());
+    }
+
+    #[test]
+    fn test_from_diff_array_modification() {
+        // Modifying array element
+        let prior = serde_json::json!({
+            "tags": ["web", "production"]
+        });
+
+        let proposed = serde_json::json!({
+            "tags": ["web", "staging"]
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "tags[1]");
+        assert_eq!(change.before, Some(serde_json::json!("production")));
+        assert_eq!(change.after, Some(serde_json::json!("staging")));
+    }
+
+    #[test]
+    fn test_from_diff_array_add_element() {
+        // Adding element to array
+        let prior = serde_json::json!({
+            "tags": ["web"]
+        });
+
+        let proposed = serde_json::json!({
+            "tags": ["web", "production"]
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "tags[1]");
+        assert!(change.before.is_none());
+        assert_eq!(change.after, Some(serde_json::json!("production")));
+    }
+
+    #[test]
+    fn test_from_diff_array_remove_element() {
+        // Removing element from array
+        let prior = serde_json::json!({
+            "tags": ["web", "production"]
+        });
+
+        let proposed = serde_json::json!({
+            "tags": ["web"]
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "tags[1]");
+        assert_eq!(change.before, Some(serde_json::json!("production")));
+        assert!(change.after.is_none());
+    }
+
+    #[test]
+    fn test_from_diff_complex_nested_structure() {
+        // Complex nested structure with multiple changes
+        let prior = serde_json::json!({
+            "name": "test",
+            "spec": {
+                "replicas": 3,
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app": "oldapp",
+                            "version": "v1"
+                        }
+                    }
+                }
+            }
+        });
+
+        let proposed = serde_json::json!({
+            "name": "test",
+            "spec": {
+                "replicas": 5,
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app": "newapp",
+                            "version": "v1"
+                        }
+                    }
+                }
+            }
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 2);
+
+        let paths: std::collections::HashSet<_> =
+            result.changes.iter().map(|c| c.path.as_str()).collect();
+        assert!(paths.contains("spec.replicas"));
+        assert!(paths.contains("spec.template.metadata.labels.app"));
+    }
+
+    #[test]
+    fn test_from_diff_type_change() {
+        // Changing type of a field (number to string)
+        let prior = serde_json::json!({
+            "value": 42
+        });
+
+        let proposed = serde_json::json!({
+            "value": "42"
+        });
+
+        let result = PlanResult::from_diff(Some(&prior), &proposed);
+        assert_eq!(result.changes.len(), 1);
+
+        let change = &result.changes[0];
+        assert_eq!(change.path, "value");
+        assert_eq!(change.before, Some(serde_json::json!(42)));
+        assert_eq!(change.after, Some(serde_json::json!("42")));
     }
 }

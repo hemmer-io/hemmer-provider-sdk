@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `PlanResult::from_diff()` method for automatic plan diff computation (#32)
+  - Automatically computes attribute changes by comparing prior and proposed states
+  - Eliminates need for manual `AttributeChange` construction in providers
+  - Supports nested objects with dot-notation paths (e.g., `"metadata.labels.app"`)
+  - Supports arrays with bracket notation (e.g., `"tags[0]"`)
+  - Comprehensive test coverage for various diff scenarios
+
 ## [0.2.0] - 2025-11-29
 
 ### Added
