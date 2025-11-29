@@ -129,6 +129,7 @@ pub mod logging;
 pub mod schema;
 pub mod server;
 pub mod types;
+pub mod validation;
 
 #[allow(missing_docs)]
 #[allow(clippy::all)]
@@ -145,6 +146,7 @@ pub use types::{
     AttributeChange, ImportedResource, PlanResult, ProviderMetadata, ServerCapabilities,
     HANDSHAKE_PREFIX, PROTOCOL_VERSION,
 };
+pub use validation::{is_valid, validate, validate_result};
 
 // Re-export async_trait for convenience
 pub use async_trait::async_trait;
