@@ -11,14 +11,26 @@ updates:
       - "rust"
     commit-message:
       prefix: "chore(deps)"
-    # Group minor and patch updates to reduce PR noise
     groups:
+      # Group tonic/prost ecosystem together - they must be updated in sync
+      grpc:
+        patterns:
+          - "tonic"
+          - "tonic-*"
+          - "prost"
+          - "prost-*"
+      # Group other minor and patch updates
       minor-and-patch:
         patterns:
           - "*"
         update-types:
           - "minor"
           - "patch"
+        exclude-patterns:
+          - "tonic"
+          - "tonic-*"
+          - "prost"
+          - "prost-*"
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

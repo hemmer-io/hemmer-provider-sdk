@@ -11,6 +11,7 @@ categories = ["development-tools", "api-bindings"]
 
 [dependencies]
 tonic = "0.14"
+tonic-prost = "0.14"
 prost = "0.14"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = "0.1"
@@ -22,7 +23,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [build-dependencies]
-tonic-build = "0.14"
+tonic-prost-build = "0.14"
 
 [dev-dependencies]
 tokio-test = "0.4"
