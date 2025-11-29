@@ -13,6 +13,7 @@
 //! 4. Exits cleanly
 
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::net::TcpListener;
@@ -200,7 +201,7 @@ pub trait ProviderService: Send + Sync + 'static {
 
 /// Wrapper that implements the generated gRPC trait.
 struct ProviderGrpcService<P: ProviderService> {
-    provider: P,
+    provider: Arc<P>,
 }
 
 impl<P: ProviderService> ProviderGrpcService<P> {
@@ -780,29 +781,59 @@ async fn serve_on_listener<P: ProviderService>(
     provider: P,
     listener: TcpListener,
     addr: SocketAddr,
-    _options: ServeOptions,
+    options: ServeOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Output the handshake
     println!("{}|{}|{}", HANDSHAKE_PREFIX, PROTOCOL_VERSION, addr);
+
+    // Wrap provider in Arc so we can share it between the gRPC service and shutdown handler
+    let provider = Arc::new(provider);
+    let provider_for_shutdown = Arc::clone(&provider);
 
     // Create the gRPC service
     let grpc_service = ProviderGrpcService { provider };
     let server = crate::generated::provider_server::ProviderServer::new(grpc_service);
 
     // Run the server with graceful shutdown
-    // Note: tonic's serve_with_incoming_shutdown handles graceful shutdown internally.
-    // The shutdown_timeout in options is reserved for future use when we need
-    // more control over the shutdown process.
-    Server::builder()
+    // The shutdown_timeout limits how long we wait for in-flight requests to complete
+    let server_future = Server::builder()
         .add_service(server)
         .serve_with_incoming_shutdown(
             tokio_stream::wrappers::TcpListenerStream::new(listener),
             async {
                 wait_for_shutdown_signal().await;
             },
-        )
-        .await?;
+        );
 
-    eprintln!("Server shutdown complete");
+    // Apply shutdown timeout - if the server doesn't shut down in time, we proceed anyway
+    let shutdown_result = tokio::time::timeout(
+        options.shutdown_timeout,
+        server_future,
+    )
+    .await;
+
+    match shutdown_result {
+        Ok(Ok(())) => {
+            eprintln!("Server shutdown complete");
+        }
+        Ok(Err(e)) => {
+            eprintln!("Server error during shutdown: {}", e);
+            return Err(e.into());
+        }
+        Err(_) => {
+            eprintln!(
+                "Shutdown timeout ({:?}) exceeded, forcing shutdown",
+                options.shutdown_timeout
+            );
+        }
+    }
+
+    // Call the provider's stop() method
+    eprintln!("Calling provider stop()...");
+    if let Err(e) = provider_for_shutdown.stop().await {
+        eprintln!("Warning: provider stop() returned error: {}", e);
+    }
+
+    eprintln!("Provider shutdown complete");
     Ok(())
 }
