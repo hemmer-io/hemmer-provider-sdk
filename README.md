@@ -175,6 +175,68 @@ let schema = Schema::v0()
     ));
 ```
 
+## Validation
+
+The SDK provides built-in validation helpers to validate configuration values against schemas:
+
+```rust
+use hemmer_provider_sdk::{validate, is_valid, schema::Schema};
+use serde_json::json;
+
+let schema = Schema::v0()
+    .with_attribute("name", Attribute::required_string())
+    .with_attribute("count", Attribute::optional(AttributeType::Number));
+
+let value = json!({
+    "name": "my-resource",
+    "count": 5
+});
+
+// Get detailed validation diagnostics
+let diagnostics = validate(&schema, &value);
+if diagnostics.is_empty() {
+    println!("Configuration is valid!");
+}
+
+// Or use the simple boolean check
+if is_valid(&schema, &value) {
+    println!("Valid!");
+}
+```
+
+## Testing
+
+The SDK includes a test harness for provider implementations:
+
+```rust
+use hemmer_provider_sdk::{ProviderTester, ProviderService};
+use serde_json::json;
+
+#[tokio::test]
+async fn test_resource_lifecycle() {
+    let provider = MyProvider::new();
+    let tester = ProviderTester::new(provider);
+
+    // Test complete CRUD lifecycle
+    let final_state = tester
+        .lifecycle_crud(
+            "mycloud_instance",
+            json!({"name": "test"}),           // create config
+            json!({"name": "test-updated"}),   // update config
+        )
+        .await
+        .expect("lifecycle should succeed");
+
+    // Or test individual operations with assertions
+    let plan = tester
+        .plan("mycloud_instance", None, json!({"name": "test"}))
+        .await
+        .unwrap();
+
+    tester.assert_plan_creates(&plan);
+}
+```
+
 ## Handshake Protocol
 
 When a provider starts via `serve()`, it outputs a handshake string to stdout:
