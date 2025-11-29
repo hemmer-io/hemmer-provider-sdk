@@ -320,12 +320,24 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
         ))
     }
 
-    #[instrument(skip(self, _request), name = "grpc.get_schema")]
+    #[instrument(skip(self, request), name = "grpc.get_schema")]
     async fn get_schema(
         &self,
-        _request: tonic::Request<crate::generated::GetSchemaRequest>,
+        request: tonic::Request<crate::generated::GetSchemaRequest>,
     ) -> Result<tonic::Response<crate::generated::GetSchemaResponse>, tonic::Status> {
         debug!("GetSchema called");
+
+        // Validate client protocol version
+        let client_version = request.get_ref().client_protocol_version;
+        crate::check_protocol_version(client_version)
+            .map_err(tonic::Status::failed_precondition)?;
+
+        debug!(
+            client_version = client_version,
+            server_version = crate::PROTOCOL_VERSION,
+            "Protocol version negotiation complete"
+        );
+
         let schema = self.provider.schema();
         info!(
             resources = schema.resources.len(),
@@ -333,6 +345,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             "GetSchema completed"
         );
         Ok(tonic::Response::new(crate::generated::GetSchemaResponse {
+            server_protocol_version: crate::PROTOCOL_VERSION,
             provider: Some(self.schema_to_proto(&schema.provider)),
             resources: schema
                 .resources
@@ -997,4 +1010,146 @@ async fn serve_on_listener<P: ProviderService>(
 
     info!("Provider shutdown complete");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::generated::provider_server::Provider;
+    use crate::schema::{Attribute, ProviderSchema, Schema};
+    use crate::types::PlanResult;
+
+    // A simple test provider
+    struct TestProvider;
+
+    #[async_trait::async_trait]
+    impl ProviderService for TestProvider {
+        fn schema(&self) -> ProviderSchema {
+            ProviderSchema::new().with_resource(
+                "test_resource",
+                Schema::v0().with_attribute("name", Attribute::required_string()),
+            )
+        }
+
+        async fn configure(
+            &self,
+            _config: serde_json::Value,
+        ) -> Result<Vec<crate::schema::Diagnostic>, crate::error::ProviderError> {
+            Ok(vec![])
+        }
+
+        async fn plan(
+            &self,
+            _resource_type: &str,
+            _prior_state: Option<serde_json::Value>,
+            proposed_state: serde_json::Value,
+            _config: serde_json::Value,
+        ) -> Result<PlanResult, crate::error::ProviderError> {
+            Ok(PlanResult::no_change(proposed_state))
+        }
+
+        async fn create(
+            &self,
+            _resource_type: &str,
+            planned_state: serde_json::Value,
+        ) -> Result<serde_json::Value, crate::error::ProviderError> {
+            Ok(planned_state)
+        }
+
+        async fn read(
+            &self,
+            _resource_type: &str,
+            current_state: serde_json::Value,
+        ) -> Result<serde_json::Value, crate::error::ProviderError> {
+            Ok(current_state)
+        }
+
+        async fn update(
+            &self,
+            _resource_type: &str,
+            _prior_state: serde_json::Value,
+            planned_state: serde_json::Value,
+        ) -> Result<serde_json::Value, crate::error::ProviderError> {
+            Ok(planned_state)
+        }
+
+        async fn delete(
+            &self,
+            _resource_type: &str,
+            _current_state: serde_json::Value,
+        ) -> Result<(), crate::error::ProviderError> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_schema_with_current_version() {
+        let service = ProviderGrpcService {
+            provider: Arc::new(TestProvider),
+        };
+
+        let request = tonic::Request::new(crate::generated::GetSchemaRequest {
+            client_protocol_version: crate::PROTOCOL_VERSION,
+        });
+
+        let response = service.get_schema(request).await;
+        assert!(response.is_ok());
+
+        let inner = response.unwrap().into_inner();
+        assert_eq!(inner.server_protocol_version, crate::PROTOCOL_VERSION);
+        assert!(inner.provider.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_get_schema_with_old_version() {
+        let service = ProviderGrpcService {
+            provider: Arc::new(TestProvider),
+        };
+
+        let request = tonic::Request::new(crate::generated::GetSchemaRequest {
+            client_protocol_version: 0, // Too old
+        });
+
+        let response = service.get_schema(request).await;
+        assert!(response.is_err());
+
+        let err = response.unwrap_err();
+        assert_eq!(err.code(), tonic::Code::FailedPrecondition);
+        assert!(err.message().contains("too old"));
+    }
+
+    #[tokio::test]
+    async fn test_get_schema_with_min_version() {
+        let service = ProviderGrpcService {
+            provider: Arc::new(TestProvider),
+        };
+
+        let request = tonic::Request::new(crate::generated::GetSchemaRequest {
+            client_protocol_version: crate::MIN_PROTOCOL_VERSION,
+        });
+
+        let response = service.get_schema(request).await;
+        assert!(response.is_ok());
+
+        let inner = response.unwrap().into_inner();
+        assert_eq!(inner.server_protocol_version, crate::PROTOCOL_VERSION);
+    }
+
+    #[tokio::test]
+    async fn test_get_schema_with_newer_version() {
+        let service = ProviderGrpcService {
+            provider: Arc::new(TestProvider),
+        };
+
+        let request = tonic::Request::new(crate::generated::GetSchemaRequest {
+            client_protocol_version: crate::PROTOCOL_VERSION + 1,
+        });
+
+        let response = service.get_schema(request).await;
+        // Should succeed (with a warning in logs)
+        assert!(response.is_ok());
+
+        let inner = response.unwrap().into_inner();
+        assert_eq!(inner.server_protocol_version, crate::PROTOCOL_VERSION);
+    }
 }

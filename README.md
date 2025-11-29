@@ -251,6 +251,40 @@ Format: `HEMMER_PROVIDER|<protocol_version>|<address>`
 
 This allows Hemmer to spawn the provider as a subprocess and connect via gRPC.
 
+## Protocol Versioning
+
+The SDK implements protocol version negotiation to ensure compatibility between Hemmer and providers built with different SDK versions.
+
+### Version Constants
+
+```rust
+use hemmer_provider_sdk::{PROTOCOL_VERSION, MIN_PROTOCOL_VERSION, check_protocol_version};
+
+// Current protocol version (incremented for breaking changes)
+assert_eq!(PROTOCOL_VERSION, 1);
+
+// Minimum supported version for backwards compatibility
+assert_eq!(MIN_PROTOCOL_VERSION, 1);
+```
+
+### Version Negotiation
+
+During the `GetSchema` RPC, Hemmer sends its protocol version, and the provider validates compatibility:
+
+```rust
+// Automatically handled by the SDK
+// Providers reject clients with versions below MIN_PROTOCOL_VERSION
+check_protocol_version(client_version)?;
+```
+
+### Versioning Strategy
+
+- **Patch** (0.1.x): Bug fixes, no protocol changes
+- **Minor** (0.x.0): Additive changes (new optional fields), backwards compatible
+- **Major** (x.0.0): Breaking changes, increment `PROTOCOL_VERSION`
+
+When `PROTOCOL_VERSION` is incremented, consider whether older clients should still be supported by setting `MIN_PROTOCOL_VERSION` appropriately.
+
 ## Contributing
 
 ### Quick Setup
