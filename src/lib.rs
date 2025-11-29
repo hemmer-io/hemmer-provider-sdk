@@ -135,7 +135,9 @@ pub mod generated;
 // Re-export main types at crate root
 pub use error::ProviderError;
 pub use schema::ProviderSchema;
-pub use server::{serve, serve_on, ProviderService};
+pub use server::{
+    serve, serve_on, serve_on_with_options, serve_with_options, ProviderService, ServeOptions,
+};
 pub use types::{
     AttributeChange, ImportedResource, PlanResult, ProviderMetadata, ServerCapabilities,
     HANDSHAKE_PREFIX, PROTOCOL_VERSION,
