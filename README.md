@@ -15,7 +15,7 @@ The Hemmer Provider SDK provides gRPC protocol types and server helpers for buil
 
 ## Features
 
-- **Complete Provider Protocol**: Full gRPC protocol similar to Terraform's provider protocol
+- **Complete Provider Protocol**: Full gRPC protocol for infrastructure management
 - **Schema Support**: Define resource and data source schemas with types, validation, and documentation
 - **Pre-compiled Types**: Committed Rust types (no build-time proto generation required)
 - **Server Helpers**: Easy provider startup with handshake protocol
