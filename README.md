@@ -1,5 +1,7 @@
 # Hemmer Provider SDK
 
+[![Crates.io](https://img.shields.io/crates/v/hemmer-provider-sdk.svg)](https://crates.io/crates/hemmer-provider-sdk)
+[![Documentation](https://docs.rs/hemmer-provider-sdk/badge.svg)](https://docs.rs/hemmer-provider-sdk)
 [![CI](https://github.com/hemmer-io/hemmer-provider-sdk/actions/workflows/ci.yml/badge.svg)](https://github.com/hemmer-io/hemmer-provider-sdk/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
