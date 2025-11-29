@@ -2,6 +2,36 @@
 
 This file provides context for Claude Code when working on the Hemmer Provider SDK.
 
+---
+
+## IMPORTANT: Workflow Rules
+
+### Never Push Directly to Main
+
+**All changes must go through a pull request.** Never commit or push directly to the `main` branch.
+
+Required workflow:
+1. Create an issue describing the work
+2. Create a feature branch from `main`
+3. Make changes and commit to the feature branch
+4. Create a pull request referencing the issue
+5. Get review and merge via PR
+
+### Always Tag Issues and PRs
+
+When creating issues:
+- **Always add appropriate labels** (see Labels section below)
+- **Always assign to the appropriate team member(s)**
+- Use the issue templates provided
+
+When creating pull requests:
+- **Always add appropriate labels** (at minimum: type label like `enhancement` or `bug`)
+- **Always assign to the appropriate reviewer(s)**
+- **Always link to the related issue** using "Closes #123" in the PR body
+- Use the PR template provided
+
+---
+
 ## Project Overview
 
 The Hemmer Provider SDK is a Rust library for building providers that integrate with [Hemmer](https://github.com/hemmer-io/hemmer), a next-generation Infrastructure as Code tool. It provides:
