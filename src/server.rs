@@ -2,8 +2,19 @@
 //!
 //! This module provides the `ProviderService` trait that providers implement,
 //! and the `serve` function to start a gRPC server with the handshake protocol.
+//!
+//! # Signal Handling
+//!
+//! The server automatically handles OS signals (SIGTERM, SIGINT) for graceful shutdown.
+//! When a signal is received, the server:
+//! 1. Stops accepting new connections
+//! 2. Waits for in-flight requests to complete (with configurable timeout)
+//! 3. Calls the provider's `stop()` method
+//! 4. Exits cleanly
 
 use std::net::SocketAddr;
+use std::sync::Arc;
+use std::time::Duration;
 
 use tokio::net::TcpListener;
 use tonic::transport::Server;
@@ -190,7 +201,7 @@ pub trait ProviderService: Send + Sync + 'static {
 
 /// Wrapper that implements the generated gRPC trait.
 struct ProviderGrpcService<P: ProviderService> {
-    provider: P,
+    provider: Arc<P>,
 }
 
 impl<P: ProviderService> ProviderGrpcService<P> {
@@ -643,58 +654,181 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
     }
 }
 
+/// Options for configuring the provider server.
+#[derive(Debug, Clone)]
+pub struct ServeOptions {
+    /// Timeout for graceful shutdown. After receiving a shutdown signal,
+    /// the server will wait this long for in-flight requests to complete.
+    /// Default: 30 seconds.
+    pub shutdown_timeout: Duration,
+}
+
+impl Default for ServeOptions {
+    fn default() -> Self {
+        Self {
+            shutdown_timeout: Duration::from_secs(30),
+        }
+    }
+}
+
+impl ServeOptions {
+    /// Create new serve options with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the shutdown timeout.
+    pub fn with_shutdown_timeout(mut self, timeout: Duration) -> Self {
+        self.shutdown_timeout = timeout;
+        self
+    }
+}
+
+/// Wait for a shutdown signal (SIGTERM or SIGINT).
+///
+/// On Unix, this waits for SIGTERM or SIGINT.
+/// On Windows, this waits for CTRL+C.
+async fn wait_for_shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{signal, SignalKind};
+
+        let mut sigterm =
+            signal(SignalKind::terminate()).expect("Failed to install SIGTERM handler");
+        let mut sigint = signal(SignalKind::interrupt()).expect("Failed to install SIGINT handler");
+
+        tokio::select! {
+            _ = sigterm.recv() => {
+                eprintln!("Received SIGTERM, initiating graceful shutdown...");
+            }
+            _ = sigint.recv() => {
+                eprintln!("Received SIGINT, initiating graceful shutdown...");
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install CTRL+C handler");
+        eprintln!("Received CTRL+C, initiating graceful shutdown...");
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    {
+        // Fallback: just wait forever (no signal handling)
+        std::future::pending::<()>().await;
+    }
+}
+
 /// Serve a provider implementation as a gRPC server.
 ///
 /// This function:
 /// 1. Finds an available port
 /// 2. Starts the gRPC server
 /// 3. Outputs the handshake string to stdout
+/// 4. Handles shutdown signals (SIGTERM/SIGINT) gracefully
 ///
 /// The handshake format is: `HEMMER_PROVIDER|<version>|<address>`
+///
+/// For custom configuration, use [`serve_with_options`].
 pub async fn serve<P: ProviderService>(provider: P) -> Result<(), Box<dyn std::error::Error>> {
+    serve_with_options(provider, ServeOptions::default()).await
+}
+
+/// Serve a provider with custom options.
+///
+/// See [`serve`] for details. This function allows configuring
+/// shutdown behavior via [`ServeOptions`].
+pub async fn serve_with_options<P: ProviderService>(
+    provider: P,
+    options: ServeOptions,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Find an available port by binding to port 0
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
 
-    // Output the handshake
-    println!("{}|{}|{}", HANDSHAKE_PREFIX, PROTOCOL_VERSION, addr);
-
-    // Create the gRPC service
-    let grpc_service = ProviderGrpcService { provider };
-    let server = crate::generated::provider_server::ProviderServer::new(grpc_service);
-
-    // Run the server
-    Server::builder()
-        .add_service(server)
-        .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
-        .await?;
-
-    Ok(())
+    serve_on_listener(provider, listener, addr, options).await
 }
 
 /// Serve a provider on a specific address.
 ///
-/// Unlike `serve`, this function binds to the specified address rather than
+/// Unlike [`serve`], this function binds to the specified address rather than
 /// finding an available port.
 pub async fn serve_on<P: ProviderService>(
     provider: P,
     addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    serve_on_with_options(provider, addr, ServeOptions::default()).await
+}
+
+/// Serve a provider on a specific address with custom options.
+pub async fn serve_on_with_options<P: ProviderService>(
+    provider: P,
+    addr: SocketAddr,
+    options: ServeOptions,
+) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind(addr).await?;
     let actual_addr = listener.local_addr()?;
 
+    serve_on_listener(provider, listener, actual_addr, options).await
+}
+
+/// Internal function to serve on an already-bound listener.
+async fn serve_on_listener<P: ProviderService>(
+    provider: P,
+    listener: TcpListener,
+    addr: SocketAddr,
+    options: ServeOptions,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Output the handshake
-    println!("{}|{}|{}", HANDSHAKE_PREFIX, PROTOCOL_VERSION, actual_addr);
+    println!("{}|{}|{}", HANDSHAKE_PREFIX, PROTOCOL_VERSION, addr);
+
+    // Wrap provider in Arc so we can share it between the gRPC service and shutdown handler
+    let provider = Arc::new(provider);
+    let provider_for_shutdown = Arc::clone(&provider);
 
     // Create the gRPC service
     let grpc_service = ProviderGrpcService { provider };
     let server = crate::generated::provider_server::ProviderServer::new(grpc_service);
 
-    // Run the server
-    Server::builder()
+    // Run the server with graceful shutdown
+    // The shutdown_timeout limits how long we wait for in-flight requests to complete
+    let server_future = Server::builder()
         .add_service(server)
-        .serve_with_incoming(tokio_stream::wrappers::TcpListenerStream::new(listener))
-        .await?;
+        .serve_with_incoming_shutdown(
+            tokio_stream::wrappers::TcpListenerStream::new(listener),
+            async {
+                wait_for_shutdown_signal().await;
+            },
+        );
 
+    // Apply shutdown timeout - if the server doesn't shut down in time, we proceed anyway
+    let shutdown_result = tokio::time::timeout(options.shutdown_timeout, server_future).await;
+
+    match shutdown_result {
+        Ok(Ok(())) => {
+            eprintln!("Server shutdown complete");
+        }
+        Ok(Err(e)) => {
+            eprintln!("Server error during shutdown: {}", e);
+            return Err(e.into());
+        }
+        Err(_) => {
+            eprintln!(
+                "Shutdown timeout ({:?}) exceeded, forcing shutdown",
+                options.shutdown_timeout
+            );
+        }
+    }
+
+    // Call the provider's stop() method
+    eprintln!("Calling provider stop()...");
+    if let Err(e) = provider_for_shutdown.stop().await {
+        eprintln!("Warning: provider stop() returned error: {}", e);
+    }
+
+    eprintln!("Provider shutdown complete");
     Ok(())
 }
