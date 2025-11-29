@@ -1,0 +1,32 @@
+[package]
+name = "hemmer-provider-sdk"
+version = "0.1.0"
+edition = "2021"
+authors = ["Hemmer <engineering@hemmer.io>"]
+description = "Rust SDK for building Hemmer providers"
+license = "Apache-2.0"
+repository = "https://github.com/hemmer-io/hemmer-provider-sdk"
+keywords = ["hemmer", "iac", "infrastructure", "provider", "grpc"]
+categories = ["development-tools", "api-bindings"]
+
+[dependencies]
+tonic = "0.12"
+prost = "0.13"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+async-trait = "0.1"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[dev-dependencies]
+tokio-test = "0.4"
+
+[features]
+default = []
+# Enable this feature to regenerate proto types from the .proto file
+# Usage: cargo build --features regenerate-proto
+regenerate-proto = []
