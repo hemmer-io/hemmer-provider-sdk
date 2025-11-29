@@ -6,6 +6,7 @@ authors = ["Hemmer <engineering@hemmer.io>"]
 description = "Rust SDK for building Hemmer providers"
 license = "Apache-2.0"
 repository = "https://github.com/hemmer-io/hemmer-provider-sdk"
+readme = "README.md"
 keywords = ["hemmer", "iac", "infrastructure", "provider", "grpc"]
 categories = ["development-tools", "api-bindings"]
 

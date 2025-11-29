@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  create-tag:
+    # Only run if PR was merged and title starts with "release:"
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.title, 'release:')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      tag: ${{ steps.extract.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from PR title
+        id: extract
+        run: |
+          # PR title format: "release: v0.1.0" or "release: 0.1.0"
+          TITLE="${{ github.event.pull_request.title }}"
+          VERSION=$(echo "$TITLE" | sed -n 's/^release:[[:space:]]*v\?\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/p')
+
+          if [ -z "$VERSION" ]; then
+            echo "Error: Could not extract version from PR title: $TITLE"
+            echo "Expected format: 'release: v0.1.0' or 'release: 0.1.0'"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION (tag: v$VERSION)"
+
+      - name: Verify Cargo.toml version matches
+        run: |
+          CARGO_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          if [ "$CARGO_VERSION" != "${{ steps.extract.outputs.version }}" ]; then
+            echo "Error: Version mismatch!"
+            echo "PR title version: ${{ steps.extract.outputs.version }}"
+            echo "Cargo.toml version: $CARGO_VERSION"
+            echo "Please update Cargo.toml to match the release version."
+            exit 1
+          fi
+          echo "Version verified: $CARGO_VERSION"
+
+      - name: Check tag doesn't already exist
+        run: |
+          if git rev-parse "${{ steps.extract.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Error: Tag ${{ steps.extract.outputs.tag }} already exists"
+            exit 1
+          fi
+          echo "Tag ${{ steps.extract.outputs.tag }} is available"
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.extract.outputs.tag }}" -m "Release ${{ steps.extract.outputs.tag }}"
+          git push origin "${{ steps.extract.outputs.tag }}"
+          echo "Created and pushed tag: ${{ steps.extract.outputs.tag }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.extract.outputs.tag }}
+          name: ${{ steps.extract.outputs.tag }}
+          body: |
+            ## hemmer-provider-sdk ${{ steps.extract.outputs.tag }}
+
+            See the [CHANGELOG](https://github.com/hemmer-io/hemmer-provider-sdk/blob/main/CHANGELOG.md) for details.
+
+            ### Installation
+
+            ```toml
+            [dependencies]
+            hemmer-provider-sdk = "${{ steps.extract.outputs.version }}"
+            ```
+          generate_release_notes: true
