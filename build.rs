@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "regenerate-proto")]
     {
         let out_dir = std::path::PathBuf::from("src");
-        tonic_build::configure()
+        tonic_prost_build::configure()
             .out_dir(&out_dir)
             .compile_protos(&["proto/provider.proto"], &["proto"])?;
 
