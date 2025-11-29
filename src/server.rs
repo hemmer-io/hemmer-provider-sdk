@@ -18,6 +18,7 @@ use std::time::Duration;
 
 use tokio::net::TcpListener;
 use tonic::transport::Server;
+use tracing::{debug, error, info, instrument, warn};
 
 use crate::error::ProviderError;
 use crate::schema::{Diagnostic, DiagnosticSeverity, ProviderSchema};
@@ -295,11 +296,18 @@ fn block_to_proto(block: &crate::schema::Block) -> crate::generated::Block {
 
 #[tonic::async_trait]
 impl<P: ProviderService> crate::generated::provider_server::Provider for ProviderGrpcService<P> {
+    #[instrument(skip(self, _request), name = "grpc.get_metadata")]
     async fn get_metadata(
         &self,
         _request: tonic::Request<crate::generated::GetMetadataRequest>,
     ) -> Result<tonic::Response<crate::generated::GetMetadataResponse>, tonic::Status> {
+        debug!("GetMetadata called");
         let metadata = self.provider.metadata();
+        info!(
+            resources = metadata.resources.len(),
+            data_sources = metadata.data_sources.len(),
+            "GetMetadata completed"
+        );
         Ok(tonic::Response::new(
             crate::generated::GetMetadataResponse {
                 server_capabilities: Some(crate::generated::ServerCapabilities {
@@ -312,11 +320,18 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
         ))
     }
 
+    #[instrument(skip(self, _request), name = "grpc.get_schema")]
     async fn get_schema(
         &self,
         _request: tonic::Request<crate::generated::GetSchemaRequest>,
     ) -> Result<tonic::Response<crate::generated::GetSchemaResponse>, tonic::Status> {
+        debug!("GetSchema called");
         let schema = self.provider.schema();
+        info!(
+            resources = schema.resources.len(),
+            data_sources = schema.data_sources.len(),
+            "GetSchema completed"
+        );
         Ok(tonic::Response::new(crate::generated::GetSchemaResponse {
             provider: Some(self.schema_to_proto(&schema.provider)),
             resources: schema
@@ -333,65 +348,111 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
         }))
     }
 
+    #[instrument(skip(self, request), name = "grpc.validate_provider_config")]
     async fn validate_provider_config(
         &self,
         request: tonic::Request<crate::generated::ValidateProviderConfigRequest>,
     ) -> Result<tonic::Response<crate::generated::ValidateProviderConfigResponse>, tonic::Status>
     {
+        debug!("ValidateProviderConfig called");
         let req = request.into_inner();
         let config = serde_json::from_slice(&req.config).unwrap_or(serde_json::Value::Null);
 
         match self.provider.validate_provider_config(config).await {
-            Ok(diagnostics) => Ok(tonic::Response::new(
-                crate::generated::ValidateProviderConfigResponse {
-                    diagnostics: self.diagnostics_to_proto(diagnostics),
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::ValidateProviderConfigResponse {
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(diagnostics) => {
+                let has_errors = diagnostics
+                    .iter()
+                    .any(|d| matches!(d.severity, DiagnosticSeverity::Error));
+                if has_errors {
+                    warn!(
+                        diagnostics = diagnostics.len(),
+                        "ValidateProviderConfig completed with errors"
+                    );
+                } else {
+                    info!("ValidateProviderConfig completed successfully");
+                }
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateProviderConfigResponse {
+                        diagnostics: self.diagnostics_to_proto(diagnostics),
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(error = %e, "ValidateProviderConfig failed");
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateProviderConfigResponse {
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.configure")]
     async fn configure(
         &self,
         request: tonic::Request<crate::generated::ConfigureRequest>,
     ) -> Result<tonic::Response<crate::generated::ConfigureResponse>, tonic::Status> {
+        debug!("Configure called");
         let req = request.into_inner();
         let config = serde_json::from_slice(&req.config).unwrap_or(serde_json::Value::Null);
 
         match self.provider.configure(config).await {
-            Ok(diagnostics) => Ok(tonic::Response::new(crate::generated::ConfigureResponse {
-                diagnostics: self.diagnostics_to_proto(diagnostics),
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::ConfigureResponse {
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(diagnostics) => {
+                let has_errors = diagnostics
+                    .iter()
+                    .any(|d| matches!(d.severity, DiagnosticSeverity::Error));
+                if has_errors {
+                    warn!(
+                        diagnostics = diagnostics.len(),
+                        "Configure completed with errors"
+                    );
+                } else {
+                    info!("Configure completed successfully");
+                }
+                Ok(tonic::Response::new(crate::generated::ConfigureResponse {
+                    diagnostics: self.diagnostics_to_proto(diagnostics),
+                }))
+            }
+            Err(e) => {
+                error!(error = %e, "Configure failed");
+                Ok(tonic::Response::new(crate::generated::ConfigureResponse {
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, _request), name = "grpc.stop")]
     async fn stop(
         &self,
         _request: tonic::Request<crate::generated::StopRequest>,
     ) -> Result<tonic::Response<crate::generated::StopResponse>, tonic::Status> {
+        info!("Stop called");
         match self.provider.stop().await {
-            Ok(()) => Ok(tonic::Response::new(crate::generated::StopResponse {
-                error: String::new(),
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::StopResponse {
-                error: e.to_string(),
-            })),
+            Ok(()) => {
+                info!("Stop completed successfully");
+                Ok(tonic::Response::new(crate::generated::StopResponse {
+                    error: String::new(),
+                }))
+            }
+            Err(e) => {
+                error!(error = %e, "Stop failed");
+                Ok(tonic::Response::new(crate::generated::StopResponse {
+                    error: e.to_string(),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.validate_resource_config")]
     async fn validate_resource_config(
         &self,
         request: tonic::Request<crate::generated::ValidateResourceConfigRequest>,
     ) -> Result<tonic::Response<crate::generated::ValidateResourceConfigResponse>, tonic::Status>
     {
         let req = request.into_inner();
+        debug!(resource_type = %req.resource_type, "ValidateResourceConfig called");
         let config = serde_json::from_slice(&req.config).unwrap_or(serde_json::Value::Null);
 
         match self
@@ -399,25 +460,40 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .validate_resource_config(&req.resource_type, config)
             .await
         {
-            Ok(diagnostics) => Ok(tonic::Response::new(
-                crate::generated::ValidateResourceConfigResponse {
-                    diagnostics: self.diagnostics_to_proto(diagnostics),
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::ValidateResourceConfigResponse {
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(diagnostics) => {
+                let has_errors = diagnostics
+                    .iter()
+                    .any(|d| matches!(d.severity, DiagnosticSeverity::Error));
+                if has_errors {
+                    warn!(resource_type = %req.resource_type, diagnostics = diagnostics.len(), "ValidateResourceConfig completed with errors");
+                } else {
+                    info!(resource_type = %req.resource_type, "ValidateResourceConfig completed successfully");
+                }
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateResourceConfigResponse {
+                        diagnostics: self.diagnostics_to_proto(diagnostics),
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "ValidateResourceConfig failed");
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateResourceConfigResponse {
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.upgrade_resource_state")]
     async fn upgrade_resource_state(
         &self,
         request: tonic::Request<crate::generated::UpgradeResourceStateRequest>,
     ) -> Result<tonic::Response<crate::generated::UpgradeResourceStateResponse>, tonic::Status>
     {
         let req = request.into_inner();
+        debug!(resource_type = %req.resource_type, version = req.version, "UpgradeResourceState called");
         let state = serde_json::from_slice(&req.raw_state).unwrap_or(serde_json::Value::Null);
 
         match self
@@ -425,26 +501,35 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .upgrade_resource_state(&req.resource_type, req.version, state)
             .await
         {
-            Ok(upgraded) => Ok(tonic::Response::new(
-                crate::generated::UpgradeResourceStateResponse {
-                    upgraded_state: serde_json::to_vec(&upgraded).unwrap_or_default(),
-                    diagnostics: vec![],
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::UpgradeResourceStateResponse {
-                    upgraded_state: vec![],
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(upgraded) => {
+                info!(resource_type = %req.resource_type, from_version = req.version, "UpgradeResourceState completed");
+                Ok(tonic::Response::new(
+                    crate::generated::UpgradeResourceStateResponse {
+                        upgraded_state: serde_json::to_vec(&upgraded).unwrap_or_default(),
+                        diagnostics: vec![],
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, version = req.version, error = %e, "UpgradeResourceState failed");
+                Ok(tonic::Response::new(
+                    crate::generated::UpgradeResourceStateResponse {
+                        upgraded_state: vec![],
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.plan")]
     async fn plan(
         &self,
         request: tonic::Request<crate::generated::PlanRequest>,
     ) -> Result<tonic::Response<crate::generated::PlanResponse>, tonic::Status> {
         let req = request.into_inner();
+        let is_create = req.prior_state.is_empty();
+        debug!(resource_type = %req.resource_type, is_create = is_create, "Plan called");
 
         let prior_state = if req.prior_state.is_empty() {
             None
@@ -461,26 +546,39 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .plan(&req.resource_type, prior_state, proposed_state, config)
             .await
         {
-            Ok(result) => Ok(tonic::Response::new(crate::generated::PlanResponse {
-                planned_state: serde_json::to_vec(&result.planned_state).unwrap_or_default(),
-                changes: result.changes.into_iter().map(Into::into).collect(),
-                requires_replace: result.requires_replace,
-                diagnostics: vec![],
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::PlanResponse {
-                planned_state: vec![],
-                changes: vec![],
-                requires_replace: false,
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(result) => {
+                info!(
+                    resource_type = %req.resource_type,
+                    changes = result.changes.len(),
+                    requires_replace = result.requires_replace,
+                    "Plan completed"
+                );
+                Ok(tonic::Response::new(crate::generated::PlanResponse {
+                    planned_state: serde_json::to_vec(&result.planned_state).unwrap_or_default(),
+                    changes: result.changes.into_iter().map(Into::into).collect(),
+                    requires_replace: result.requires_replace,
+                    diagnostics: vec![],
+                }))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "Plan failed");
+                Ok(tonic::Response::new(crate::generated::PlanResponse {
+                    planned_state: vec![],
+                    changes: vec![],
+                    requires_replace: false,
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.create")]
     async fn create(
         &self,
         request: tonic::Request<crate::generated::CreateRequest>,
     ) -> Result<tonic::Response<crate::generated::CreateResponse>, tonic::Status> {
         let req = request.into_inner();
+        info!(resource_type = %req.resource_type, "Create called");
         let planned_state =
             serde_json::from_slice(&req.planned_state).unwrap_or(serde_json::Value::Null);
 
@@ -489,42 +587,58 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .create(&req.resource_type, planned_state)
             .await
         {
-            Ok(state) => Ok(tonic::Response::new(crate::generated::CreateResponse {
-                state: serde_json::to_vec(&state).unwrap_or_default(),
-                diagnostics: vec![],
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::CreateResponse {
-                state: vec![],
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(state) => {
+                info!(resource_type = %req.resource_type, "Create completed successfully");
+                Ok(tonic::Response::new(crate::generated::CreateResponse {
+                    state: serde_json::to_vec(&state).unwrap_or_default(),
+                    diagnostics: vec![],
+                }))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "Create failed");
+                Ok(tonic::Response::new(crate::generated::CreateResponse {
+                    state: vec![],
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.read")]
     async fn read(
         &self,
         request: tonic::Request<crate::generated::ReadRequest>,
     ) -> Result<tonic::Response<crate::generated::ReadResponse>, tonic::Status> {
         let req = request.into_inner();
+        debug!(resource_type = %req.resource_type, "Read called");
         let current_state =
             serde_json::from_slice(&req.current_state).unwrap_or(serde_json::Value::Null);
 
         match self.provider.read(&req.resource_type, current_state).await {
-            Ok(state) => Ok(tonic::Response::new(crate::generated::ReadResponse {
-                state: serde_json::to_vec(&state).unwrap_or_default(),
-                diagnostics: vec![],
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::ReadResponse {
-                state: vec![],
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(state) => {
+                debug!(resource_type = %req.resource_type, "Read completed successfully");
+                Ok(tonic::Response::new(crate::generated::ReadResponse {
+                    state: serde_json::to_vec(&state).unwrap_or_default(),
+                    diagnostics: vec![],
+                }))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "Read failed");
+                Ok(tonic::Response::new(crate::generated::ReadResponse {
+                    state: vec![],
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.update")]
     async fn update(
         &self,
         request: tonic::Request<crate::generated::UpdateRequest>,
     ) -> Result<tonic::Response<crate::generated::UpdateResponse>, tonic::Status> {
         let req = request.into_inner();
+        info!(resource_type = %req.resource_type, "Update called");
         let prior_state =
             serde_json::from_slice(&req.prior_state).unwrap_or(serde_json::Value::Null);
         let planned_state =
@@ -535,22 +649,30 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .update(&req.resource_type, prior_state, planned_state)
             .await
         {
-            Ok(state) => Ok(tonic::Response::new(crate::generated::UpdateResponse {
-                state: serde_json::to_vec(&state).unwrap_or_default(),
-                diagnostics: vec![],
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::UpdateResponse {
-                state: vec![],
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(state) => {
+                info!(resource_type = %req.resource_type, "Update completed successfully");
+                Ok(tonic::Response::new(crate::generated::UpdateResponse {
+                    state: serde_json::to_vec(&state).unwrap_or_default(),
+                    diagnostics: vec![],
+                }))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "Update failed");
+                Ok(tonic::Response::new(crate::generated::UpdateResponse {
+                    state: vec![],
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.delete")]
     async fn delete(
         &self,
         request: tonic::Request<crate::generated::DeleteRequest>,
     ) -> Result<tonic::Response<crate::generated::DeleteResponse>, tonic::Status> {
         let req = request.into_inner();
+        info!(resource_type = %req.resource_type, "Delete called");
         let current_state =
             serde_json::from_slice(&req.current_state).unwrap_or(serde_json::Value::Null);
 
@@ -559,53 +681,74 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .delete(&req.resource_type, current_state)
             .await
         {
-            Ok(()) => Ok(tonic::Response::new(crate::generated::DeleteResponse {
-                diagnostics: vec![],
-            })),
-            Err(e) => Ok(tonic::Response::new(crate::generated::DeleteResponse {
-                diagnostics: self.error_to_diagnostics(e),
-            })),
+            Ok(()) => {
+                info!(resource_type = %req.resource_type, "Delete completed successfully");
+                Ok(tonic::Response::new(crate::generated::DeleteResponse {
+                    diagnostics: vec![],
+                }))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, error = %e, "Delete failed");
+                Ok(tonic::Response::new(crate::generated::DeleteResponse {
+                    diagnostics: self.error_to_diagnostics(e),
+                }))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.import_resource_state")]
     async fn import_resource_state(
         &self,
         request: tonic::Request<crate::generated::ImportResourceStateRequest>,
     ) -> Result<tonic::Response<crate::generated::ImportResourceStateResponse>, tonic::Status> {
         let req = request.into_inner();
+        info!(resource_type = %req.resource_type, id = %req.id, "ImportResourceState called");
 
         match self
             .provider
             .import_resource(&req.resource_type, &req.id)
             .await
         {
-            Ok(imported) => Ok(tonic::Response::new(
-                crate::generated::ImportResourceStateResponse {
-                    imported: imported
-                        .into_iter()
-                        .map(|r| crate::generated::ImportedResource {
-                            resource_type: r.resource_type,
-                            state: serde_json::to_vec(&r.state).unwrap_or_default(),
-                        })
-                        .collect(),
-                    diagnostics: vec![],
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::ImportResourceStateResponse {
-                    imported: vec![],
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(imported) => {
+                info!(
+                    resource_type = %req.resource_type,
+                    id = %req.id,
+                    imported_count = imported.len(),
+                    "ImportResourceState completed"
+                );
+                Ok(tonic::Response::new(
+                    crate::generated::ImportResourceStateResponse {
+                        imported: imported
+                            .into_iter()
+                            .map(|r| crate::generated::ImportedResource {
+                                resource_type: r.resource_type,
+                                state: serde_json::to_vec(&r.state).unwrap_or_default(),
+                            })
+                            .collect(),
+                        diagnostics: vec![],
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(resource_type = %req.resource_type, id = %req.id, error = %e, "ImportResourceState failed");
+                Ok(tonic::Response::new(
+                    crate::generated::ImportResourceStateResponse {
+                        imported: vec![],
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.validate_data_source_config")]
     async fn validate_data_source_config(
         &self,
         request: tonic::Request<crate::generated::ValidateDataSourceConfigRequest>,
     ) -> Result<tonic::Response<crate::generated::ValidateDataSourceConfigResponse>, tonic::Status>
     {
         let req = request.into_inner();
+        debug!(data_source_type = %req.data_source_type, "ValidateDataSourceConfig called");
         let config = serde_json::from_slice(&req.config).unwrap_or(serde_json::Value::Null);
 
         match self
@@ -613,24 +756,39 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .validate_data_source_config(&req.data_source_type, config)
             .await
         {
-            Ok(diagnostics) => Ok(tonic::Response::new(
-                crate::generated::ValidateDataSourceConfigResponse {
-                    diagnostics: self.diagnostics_to_proto(diagnostics),
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::ValidateDataSourceConfigResponse {
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(diagnostics) => {
+                let has_errors = diagnostics
+                    .iter()
+                    .any(|d| matches!(d.severity, DiagnosticSeverity::Error));
+                if has_errors {
+                    warn!(data_source_type = %req.data_source_type, diagnostics = diagnostics.len(), "ValidateDataSourceConfig completed with errors");
+                } else {
+                    info!(data_source_type = %req.data_source_type, "ValidateDataSourceConfig completed successfully");
+                }
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateDataSourceConfigResponse {
+                        diagnostics: self.diagnostics_to_proto(diagnostics),
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(data_source_type = %req.data_source_type, error = %e, "ValidateDataSourceConfig failed");
+                Ok(tonic::Response::new(
+                    crate::generated::ValidateDataSourceConfigResponse {
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 
+    #[instrument(skip(self, request), name = "grpc.read_data_source")]
     async fn read_data_source(
         &self,
         request: tonic::Request<crate::generated::ReadDataSourceRequest>,
     ) -> Result<tonic::Response<crate::generated::ReadDataSourceResponse>, tonic::Status> {
         let req = request.into_inner();
+        debug!(data_source_type = %req.data_source_type, "ReadDataSource called");
         let config = serde_json::from_slice(&req.config).unwrap_or(serde_json::Value::Null);
 
         match self
@@ -638,18 +796,24 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
             .read_data_source(&req.data_source_type, config)
             .await
         {
-            Ok(state) => Ok(tonic::Response::new(
-                crate::generated::ReadDataSourceResponse {
-                    state: serde_json::to_vec(&state).unwrap_or_default(),
-                    diagnostics: vec![],
-                },
-            )),
-            Err(e) => Ok(tonic::Response::new(
-                crate::generated::ReadDataSourceResponse {
-                    state: vec![],
-                    diagnostics: self.error_to_diagnostics(e),
-                },
-            )),
+            Ok(state) => {
+                info!(data_source_type = %req.data_source_type, "ReadDataSource completed successfully");
+                Ok(tonic::Response::new(
+                    crate::generated::ReadDataSourceResponse {
+                        state: serde_json::to_vec(&state).unwrap_or_default(),
+                        diagnostics: vec![],
+                    },
+                ))
+            }
+            Err(e) => {
+                error!(data_source_type = %req.data_source_type, error = %e, "ReadDataSource failed");
+                Ok(tonic::Response::new(
+                    crate::generated::ReadDataSourceResponse {
+                        state: vec![],
+                        diagnostics: self.error_to_diagnostics(e),
+                    },
+                ))
+            }
         }
     }
 }
@@ -785,6 +949,8 @@ async fn serve_on_listener<P: ProviderService>(
     // Output the handshake
     println!("{}|{}|{}", HANDSHAKE_PREFIX, PROTOCOL_VERSION, addr);
 
+    info!(address = %addr, "Provider server starting");
+
     // Wrap provider in Arc so we can share it between the gRPC service and shutdown handler
     let provider = Arc::new(provider);
     let provider_for_shutdown = Arc::clone(&provider);
@@ -809,26 +975,26 @@ async fn serve_on_listener<P: ProviderService>(
 
     match shutdown_result {
         Ok(Ok(())) => {
-            eprintln!("Server shutdown complete");
+            info!("Server shutdown complete");
         }
         Ok(Err(e)) => {
-            eprintln!("Server error during shutdown: {}", e);
+            error!(error = %e, "Server error during shutdown");
             return Err(e.into());
         }
         Err(_) => {
-            eprintln!(
-                "Shutdown timeout ({:?}) exceeded, forcing shutdown",
-                options.shutdown_timeout
+            warn!(
+                timeout = ?options.shutdown_timeout,
+                "Shutdown timeout exceeded, forcing shutdown"
             );
         }
     }
 
     // Call the provider's stop() method
-    eprintln!("Calling provider stop()...");
+    debug!("Calling provider stop()");
     if let Err(e) = provider_for_shutdown.stop().await {
-        eprintln!("Warning: provider stop() returned error: {}", e);
+        warn!(error = %e, "Provider stop() returned error");
     }
 
-    eprintln!("Provider shutdown complete");
+    info!("Provider shutdown complete");
     Ok(())
 }
