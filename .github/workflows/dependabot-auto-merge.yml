@@ -25,7 +25,7 @@ jobs:
         id: wait-for-ci
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: build
+          checkName: CI Success
           ref: ${{ github.event.pull_request.head.sha }}
           timeoutSeconds: 600
 
