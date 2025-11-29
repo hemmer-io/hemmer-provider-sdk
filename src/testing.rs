@@ -597,36 +597,38 @@ mod tests {
             proposed_state: Value,
             _config: Value,
         ) -> Result<PlanResult, ProviderError> {
-            if prior_state.is_none() {
-                // Create
-                let mut planned = proposed_state.clone();
-                if let Value::Object(ref mut map) = planned {
-                    map.insert("id".to_string(), json!("generated-id"));
-                }
-                Ok(PlanResult::with_changes(
-                    planned,
-                    vec![AttributeChange::added("id", json!("generated-id"))],
-                    false,
-                ))
-            } else {
-                // Update - check if name changed
-                let prior = prior_state.unwrap();
-                if prior.get("name") != proposed_state.get("name") {
+            match prior_state {
+                None => {
+                    // Create
                     let mut planned = proposed_state.clone();
                     if let Value::Object(ref mut map) = planned {
-                        map.insert("id".to_string(), prior["id"].clone());
+                        map.insert("id".to_string(), json!("generated-id"));
                     }
                     Ok(PlanResult::with_changes(
                         planned,
-                        vec![AttributeChange::modified(
-                            "name",
-                            prior["name"].clone(),
-                            proposed_state["name"].clone(),
-                        )],
+                        vec![AttributeChange::added("id", json!("generated-id"))],
                         false,
                     ))
-                } else {
-                    Ok(PlanResult::no_change(prior))
+                }
+                Some(prior) => {
+                    // Update - check if name changed
+                    if prior.get("name") != proposed_state.get("name") {
+                        let mut planned = proposed_state.clone();
+                        if let Value::Object(ref mut map) = planned {
+                            map.insert("id".to_string(), prior["id"].clone());
+                        }
+                        Ok(PlanResult::with_changes(
+                            planned,
+                            vec![AttributeChange::modified(
+                                "name",
+                                prior["name"].clone(),
+                                proposed_state["name"].clone(),
+                            )],
+                            false,
+                        ))
+                    } else {
+                        Ok(PlanResult::no_change(prior))
+                    }
                 }
             }
         }
