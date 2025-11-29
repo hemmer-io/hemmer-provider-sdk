@@ -128,6 +128,7 @@ pub mod error;
 pub mod logging;
 pub mod schema;
 pub mod server;
+pub mod testing;
 pub mod types;
 pub mod validation;
 
@@ -147,6 +148,9 @@ pub use types::{
     HANDSHAKE_PREFIX, PROTOCOL_VERSION,
 };
 pub use validation::{is_valid, validate, validate_result};
+
+// Re-export testing utilities
+pub use testing::{ProviderTester, TestError};
 
 // Re-export async_trait for convenience
 pub use async_trait::async_trait;
