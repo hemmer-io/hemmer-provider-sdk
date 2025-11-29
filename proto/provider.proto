@@ -1,0 +1,325 @@
+syntax = "proto3";
+
+package hemmer.provider.v1;
+
+// The Provider service defines all RPCs for a Hemmer provider.
+service Provider {
+  // GetMetadata returns metadata about the provider without full schema.
+  // This is used for performance optimization.
+  rpc GetMetadata(GetMetadataRequest) returns (GetMetadataResponse);
+
+  // GetSchema returns the full schema for the provider, resources, and data sources.
+  rpc GetSchema(GetSchemaRequest) returns (GetSchemaResponse);
+
+  // ValidateProviderConfig validates the provider configuration.
+  rpc ValidateProviderConfig(ValidateProviderConfigRequest) returns (ValidateProviderConfigResponse);
+
+  // Configure configures the provider with credentials and settings.
+  rpc Configure(ConfigureRequest) returns (ConfigureResponse);
+
+  // Stop requests the provider to shut down gracefully.
+  rpc Stop(StopRequest) returns (StopResponse);
+
+  // ValidateResourceConfig validates a resource's configuration.
+  rpc ValidateResourceConfig(ValidateResourceConfigRequest) returns (ValidateResourceConfigResponse);
+
+  // UpgradeResourceState upgrades resource state from an older schema version.
+  rpc UpgradeResourceState(UpgradeResourceStateRequest) returns (UpgradeResourceStateResponse);
+
+  // Plan calculates changes needed to reach desired state.
+  rpc Plan(PlanRequest) returns (PlanResponse);
+
+  // Create creates a new resource.
+  rpc Create(CreateRequest) returns (CreateResponse);
+
+  // Read retrieves the current state of a resource.
+  rpc Read(ReadRequest) returns (ReadResponse);
+
+  // Update updates an existing resource.
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+
+  // Delete removes a resource.
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+
+  // ImportResourceState imports existing infrastructure into management.
+  rpc ImportResourceState(ImportResourceStateRequest) returns (ImportResourceStateResponse);
+
+  // ValidateDataSourceConfig validates a data source's configuration.
+  rpc ValidateDataSourceConfig(ValidateDataSourceConfigRequest) returns (ValidateDataSourceConfigResponse);
+
+  // ReadDataSource reads data from an external source.
+  rpc ReadDataSource(ReadDataSourceRequest) returns (ReadDataSourceResponse);
+}
+
+// ============================================================================
+// Common Types
+// ============================================================================
+
+// Diagnostic represents a warning or error message.
+message Diagnostic {
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    ERROR = 1;
+    WARNING = 2;
+  }
+  Severity severity = 1;
+  string summary = 2;
+  string detail = 3;
+  string attribute = 4;  // Attribute path where the issue occurred
+}
+
+// Schema describes the structure of a resource, data source, or provider config.
+message Schema {
+  int64 version = 1;
+  Block block = 2;
+}
+
+// Block represents a group of attributes and nested blocks.
+message Block {
+  repeated Attribute attributes = 1;
+  repeated NestedBlock block_types = 2;
+  string description = 3;
+}
+
+// Attribute describes a single configuration attribute.
+message Attribute {
+  string name = 1;
+  bytes type = 2;           // JSON-encoded AttributeType
+  bool required = 3;
+  bool optional = 4;
+  bool computed = 5;
+  bool sensitive = 6;
+  string description = 7;
+  bool force_new = 8;
+  bytes default_value = 9;  // JSON-encoded default value
+}
+
+// NestedBlock describes a nested block type.
+message NestedBlock {
+  enum NestingMode {
+    NESTING_MODE_UNSPECIFIED = 0;
+    SINGLE = 1;
+    LIST = 2;
+    SET = 3;
+    MAP = 4;
+  }
+  string type_name = 1;
+  Block block = 2;
+  NestingMode nesting_mode = 3;
+  int32 min_items = 4;
+  int32 max_items = 5;
+}
+
+// ============================================================================
+// GetMetadata
+// ============================================================================
+
+message GetMetadataRequest {}
+
+message GetMetadataResponse {
+  ServerCapabilities server_capabilities = 1;
+  repeated string resources = 2;      // List of resource type names
+  repeated string data_sources = 3;   // List of data source type names
+  repeated Diagnostic diagnostics = 4;
+}
+
+message ServerCapabilities {
+  bool plan_destroy = 1;  // Provider supports planning destroy operations
+}
+
+// ============================================================================
+// GetSchema
+// ============================================================================
+
+message GetSchemaRequest {}
+
+message GetSchemaResponse {
+  Schema provider = 1;
+  map<string, Schema> resources = 2;
+  map<string, Schema> data_sources = 3;
+  repeated Diagnostic diagnostics = 4;
+}
+
+// ============================================================================
+// ValidateProviderConfig
+// ============================================================================
+
+message ValidateProviderConfigRequest {
+  bytes config = 1;  // JSON-encoded provider configuration
+}
+
+message ValidateProviderConfigResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+// ============================================================================
+// Configure
+// ============================================================================
+
+message ConfigureRequest {
+  bytes config = 1;  // JSON-encoded provider configuration
+}
+
+message ConfigureResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+// ============================================================================
+// Stop
+// ============================================================================
+
+message StopRequest {}
+
+message StopResponse {
+  string error = 1;
+}
+
+// ============================================================================
+// ValidateResourceConfig
+// ============================================================================
+
+message ValidateResourceConfigRequest {
+  string resource_type = 1;
+  bytes config = 2;  // JSON-encoded resource configuration
+}
+
+message ValidateResourceConfigResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+// ============================================================================
+// UpgradeResourceState
+// ============================================================================
+
+message UpgradeResourceStateRequest {
+  string resource_type = 1;
+  int64 version = 2;      // Schema version of the stored state
+  bytes raw_state = 3;    // JSON-encoded state from older version
+}
+
+message UpgradeResourceStateResponse {
+  bytes upgraded_state = 1;  // JSON-encoded state in current schema
+  repeated Diagnostic diagnostics = 2;
+}
+
+// ============================================================================
+// Plan
+// ============================================================================
+
+message PlanRequest {
+  string resource_type = 1;
+  bytes prior_state = 2;     // JSON-encoded current state (empty if creating)
+  bytes proposed_state = 3;  // JSON-encoded desired state
+  bytes config = 4;          // JSON-encoded raw configuration
+}
+
+message PlanResponse {
+  bytes planned_state = 1;   // JSON-encoded planned state after apply
+  repeated AttributeChange changes = 2;
+  bool requires_replace = 3;
+  repeated Diagnostic diagnostics = 4;
+}
+
+message AttributeChange {
+  string path = 1;
+  bytes before = 2;  // JSON-encoded value before
+  bytes after = 3;   // JSON-encoded value after
+}
+
+// ============================================================================
+// Create
+// ============================================================================
+
+message CreateRequest {
+  string resource_type = 1;
+  bytes planned_state = 2;  // JSON-encoded planned state from Plan
+}
+
+message CreateResponse {
+  bytes state = 1;    // JSON-encoded new state
+  repeated Diagnostic diagnostics = 2;
+}
+
+// ============================================================================
+// Read
+// ============================================================================
+
+message ReadRequest {
+  string resource_type = 1;
+  bytes current_state = 2;  // JSON-encoded current state
+}
+
+message ReadResponse {
+  bytes state = 1;    // JSON-encoded refreshed state
+  repeated Diagnostic diagnostics = 2;
+}
+
+// ============================================================================
+// Update
+// ============================================================================
+
+message UpdateRequest {
+  string resource_type = 1;
+  bytes prior_state = 2;    // JSON-encoded state before update
+  bytes planned_state = 3;  // JSON-encoded planned state from Plan
+}
+
+message UpdateResponse {
+  bytes state = 1;    // JSON-encoded new state
+  repeated Diagnostic diagnostics = 2;
+}
+
+// ============================================================================
+// Delete
+// ============================================================================
+
+message DeleteRequest {
+  string resource_type = 1;
+  bytes current_state = 2;  // JSON-encoded current state
+}
+
+message DeleteResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+// ============================================================================
+// ImportResourceState
+// ============================================================================
+
+message ImportResourceStateRequest {
+  string resource_type = 1;
+  string id = 2;  // External ID to import
+}
+
+message ImportResourceStateResponse {
+  repeated ImportedResource imported = 1;
+  repeated Diagnostic diagnostics = 2;
+}
+
+message ImportedResource {
+  string resource_type = 1;
+  bytes state = 2;  // JSON-encoded imported state
+}
+
+// ============================================================================
+// Data Sources
+// ============================================================================
+
+message ValidateDataSourceConfigRequest {
+  string data_source_type = 1;
+  bytes config = 2;  // JSON-encoded data source configuration
+}
+
+message ValidateDataSourceConfigResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+message ReadDataSourceRequest {
+  string data_source_type = 1;
+  bytes config = 2;  // JSON-encoded data source configuration
+}
+
+message ReadDataSourceResponse {
+  bytes state = 1;  // JSON-encoded data source state
+  repeated Diagnostic diagnostics = 2;
+}
