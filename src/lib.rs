@@ -13,6 +13,7 @@
 //! - **ProviderService trait**: A high-level trait that providers implement
 //! - **Server helpers**: Functions to start a gRPC server with the handshake protocol
 //! - **Error types**: Common error types for provider implementations
+//! - **Logging**: Integration with `tracing` for structured logging
 //!
 //! # Quick Start
 //!
@@ -124,6 +125,7 @@
 #![warn(clippy::all)]
 
 pub mod error;
+pub mod logging;
 pub mod schema;
 pub mod server;
 pub mod types;
@@ -134,6 +136,7 @@ pub mod generated;
 
 // Re-export main types at crate root
 pub use error::ProviderError;
+pub use logging::{init_logging, init_logging_with_default, try_init_logging};
 pub use schema::ProviderSchema;
 pub use server::{
     serve, serve_on, serve_on_with_options, serve_with_options, ProviderService, ServeOptions,
@@ -149,3 +152,4 @@ pub use async_trait::async_trait;
 // Re-export commonly used external types
 pub use serde_json;
 pub use tonic;
+pub use tracing;
