@@ -14,17 +14,7 @@ pub struct Diagnostic {
 }
 /// Nested message and enum types in `Diagnostic`.
 pub mod diagnostic {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum Severity {
         Unspecified = 0,
@@ -112,17 +102,7 @@ pub struct NestedBlock {
 }
 /// Nested message and enum types in `NestedBlock`.
 pub mod nested_block {
-    #[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
     #[repr(i32)]
     pub enum NestingMode {
         Unspecified = 0,
@@ -188,10 +168,7 @@ pub struct GetSchemaResponse {
     #[prost(map = "string, message", tag = "2")]
     pub resources: ::std::collections::HashMap<::prost::alloc::string::String, Schema>,
     #[prost(map = "string, message", tag = "3")]
-    pub data_sources: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        Schema,
-    >,
+    pub data_sources: ::std::collections::HashMap<::prost::alloc::string::String, Schema>,
     #[prost(message, repeated, tag = "4")]
     pub diagnostics: ::prost::alloc::vec::Vec<Diagnostic>,
 }
@@ -416,10 +393,10 @@ pub mod provider_client {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
-    use tonic::codegen::*;
     use tonic::codegen::http::Uri;
+    use tonic::codegen::*;
     /// The Provider service defines all RPCs for a Hemmer provider.
     #[derive(Debug, Clone)]
     pub struct ProviderClient<T> {
@@ -464,9 +441,8 @@ pub mod provider_client {
                     <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<
-                http::Request<tonic::body::Body>,
-            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+            <T as tonic::codegen::Service<http::Request<tonic::body::Body>>>::Error:
+                Into<StdError> + std::marker::Send + std::marker::Sync,
         {
             ProviderClient::new(InterceptedService::new(inner, interceptor))
         }
@@ -506,47 +482,32 @@ pub mod provider_client {
         pub async fn get_metadata(
             &mut self,
             request: impl tonic::IntoRequest<super::GetMetadataRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetMetadataResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::GetMetadataResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/GetMetadata",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/GetMetadata");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "GetMetadata"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "GetMetadata",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// GetSchema returns the full schema for the provider, resources, and data sources.
         pub async fn get_schema(
             &mut self,
             request: impl tonic::IntoRequest<super::GetSchemaRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetSchemaResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::GetSchemaResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/GetSchema",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/GetSchema");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "GetSchema"));
@@ -560,48 +521,31 @@ pub mod provider_client {
             tonic::Response<super::ValidateProviderConfigResponse>,
             tonic::Status,
         > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/hemmer.provider.v1.Provider/ValidateProviderConfig",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "hemmer.provider.v1.Provider",
-                        "ValidateProviderConfig",
-                    ),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "ValidateProviderConfig",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Configure configures the provider with credentials and settings.
         pub async fn configure(
             &mut self,
             request: impl tonic::IntoRequest<super::ConfigureRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ConfigureResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::ConfigureResponse>, tonic::Status> {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Configure",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Configure");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Configure"));
@@ -612,18 +556,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::StopRequest>,
         ) -> std::result::Result<tonic::Response<super::StopResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Stop",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Stop");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Stop"));
@@ -637,56 +574,38 @@ pub mod provider_client {
             tonic::Response<super::ValidateResourceConfigResponse>,
             tonic::Status,
         > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/hemmer.provider.v1.Provider/ValidateResourceConfig",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "hemmer.provider.v1.Provider",
-                        "ValidateResourceConfig",
-                    ),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "ValidateResourceConfig",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// UpgradeResourceState upgrades resource state from an older schema version.
         pub async fn upgrade_resource_state(
             &mut self,
             request: impl tonic::IntoRequest<super::UpgradeResourceStateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::UpgradeResourceStateResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::UpgradeResourceStateResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/hemmer.provider.v1.Provider/UpgradeResourceState",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "hemmer.provider.v1.Provider",
-                        "UpgradeResourceState",
-                    ),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "UpgradeResourceState",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// Plan calculates changes needed to reach desired state.
@@ -694,18 +613,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::PlanRequest>,
         ) -> std::result::Result<tonic::Response<super::PlanResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Plan",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Plan");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Plan"));
@@ -716,18 +628,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::CreateRequest>,
         ) -> std::result::Result<tonic::Response<super::CreateResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Create",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Create");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Create"));
@@ -738,18 +643,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::ReadRequest>,
         ) -> std::result::Result<tonic::Response<super::ReadResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Read",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Read");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Read"));
@@ -760,18 +658,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateRequest>,
         ) -> std::result::Result<tonic::Response<super::UpdateResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Update",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Update");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Update"));
@@ -782,18 +673,11 @@ pub mod provider_client {
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteRequest>,
         ) -> std::result::Result<tonic::Response<super::DeleteResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/Delete",
-            );
+            let path = http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/Delete");
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(GrpcMethod::new("hemmer.provider.v1.Provider", "Delete"));
@@ -803,27 +687,20 @@ pub mod provider_client {
         pub async fn import_resource_state(
             &mut self,
             request: impl tonic::IntoRequest<super::ImportResourceStateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ImportResourceStateResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::ImportResourceStateResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/hemmer.provider.v1.Provider/ImportResourceState",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("hemmer.provider.v1.Provider", "ImportResourceState"),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "ImportResourceState",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// ValidateDataSourceConfig validates a data source's configuration.
@@ -834,53 +711,37 @@ pub mod provider_client {
             tonic::Response<super::ValidateDataSourceConfigResponse>,
             tonic::Status,
         > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/hemmer.provider.v1.Provider/ValidateDataSourceConfig",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "hemmer.provider.v1.Provider",
-                        "ValidateDataSourceConfig",
-                    ),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "ValidateDataSourceConfig",
+            ));
             self.inner.unary(req, path, codec).await
         }
         /// ReadDataSource reads data from an external source.
         pub async fn read_data_source(
             &mut self,
             request: impl tonic::IntoRequest<super::ReadDataSourceRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ReadDataSourceResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
+        ) -> std::result::Result<tonic::Response<super::ReadDataSourceResponse>, tonic::Status>
+        {
+            self.inner.ready().await.map_err(|e| {
+                tonic::Status::unknown(format!("Service was not ready: {}", e.into()))
+            })?;
             let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/hemmer.provider.v1.Provider/ReadDataSource",
-            );
+            let path =
+                http::uri::PathAndQuery::from_static("/hemmer.provider.v1.Provider/ReadDataSource");
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new("hemmer.provider.v1.Provider", "ReadDataSource"),
-                );
+            req.extensions_mut().insert(GrpcMethod::new(
+                "hemmer.provider.v1.Provider",
+                "ReadDataSource",
+            ));
             self.inner.unary(req, path, codec).await
         }
     }
@@ -892,7 +753,7 @@ pub mod provider_server {
         dead_code,
         missing_docs,
         clippy::wildcard_imports,
-        clippy::let_unit_value,
+        clippy::let_unit_value
     )]
     use tonic::codegen::*;
     /// Generated trait containing gRPC methods that should be implemented for use with ProviderServer.
@@ -903,18 +764,12 @@ pub mod provider_server {
         async fn get_metadata(
             &self,
             request: tonic::Request<super::GetMetadataRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetMetadataResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::GetMetadataResponse>, tonic::Status>;
         /// GetSchema returns the full schema for the provider, resources, and data sources.
         async fn get_schema(
             &self,
             request: tonic::Request<super::GetSchemaRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetSchemaResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::GetSchemaResponse>, tonic::Status>;
         /// ValidateProviderConfig validates the provider configuration.
         async fn validate_provider_config(
             &self,
@@ -927,10 +782,7 @@ pub mod provider_server {
         async fn configure(
             &self,
             request: tonic::Request<super::ConfigureRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ConfigureResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::ConfigureResponse>, tonic::Status>;
         /// Stop requests the provider to shut down gracefully.
         async fn stop(
             &self,
@@ -948,10 +800,7 @@ pub mod provider_server {
         async fn upgrade_resource_state(
             &self,
             request: tonic::Request<super::UpgradeResourceStateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::UpgradeResourceStateResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::UpgradeResourceStateResponse>, tonic::Status>;
         /// Plan calculates changes needed to reach desired state.
         async fn plan(
             &self,
@@ -981,10 +830,7 @@ pub mod provider_server {
         async fn import_resource_state(
             &self,
             request: tonic::Request<super::ImportResourceStateRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ImportResourceStateResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::ImportResourceStateResponse>, tonic::Status>;
         /// ValidateDataSourceConfig validates a data source's configuration.
         async fn validate_data_source_config(
             &self,
@@ -997,10 +843,7 @@ pub mod provider_server {
         async fn read_data_source(
             &self,
             request: tonic::Request<super::ReadDataSourceRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ReadDataSourceResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::ReadDataSourceResponse>, tonic::Status>;
     }
     /// The Provider service defines all RPCs for a Hemmer provider.
     #[derive(Debug)]
@@ -1024,10 +867,7 @@ pub mod provider_server {
                 max_encoding_message_size: None,
             }
         }
-        pub fn with_interceptor<F>(
-            inner: T,
-            interceptor: F,
-        ) -> InterceptedService<Self, F>
+        pub fn with_interceptor<F>(inner: T, interceptor: F) -> InterceptedService<Self, F>
         where
             F: tonic::service::Interceptor,
         {
@@ -1082,23 +922,16 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/GetMetadata" => {
                     #[allow(non_camel_case_types)]
                     struct GetMetadataSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::GetMetadataRequest>
-                    for GetMetadataSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::GetMetadataRequest> for GetMetadataSvc<T> {
                         type Response = super::GetMetadataResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetMetadataRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::get_metadata(&inner, request).await
-                            };
+                            let fut =
+                                async move { <T as Provider>::get_metadata(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1127,23 +960,16 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/GetSchema" => {
                     #[allow(non_camel_case_types)]
                     struct GetSchemaSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::GetSchemaRequest>
-                    for GetSchemaSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::GetSchemaRequest> for GetSchemaSvc<T> {
                         type Response = super::GetSchemaResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::GetSchemaRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::get_schema(&inner, request).await
-                            };
+                            let fut =
+                                async move { <T as Provider>::get_schema(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1172,23 +998,19 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/ValidateProviderConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateProviderConfigSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ValidateProviderConfigRequest>
-                    for ValidateProviderConfigSvc<T> {
+                    impl<T: Provider>
+                        tonic::server::UnaryService<super::ValidateProviderConfigRequest>
+                        for ValidateProviderConfigSvc<T>
+                    {
                         type Response = super::ValidateProviderConfigResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ValidateProviderConfigRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Provider>::validate_provider_config(&inner, request)
-                                    .await
+                                <T as Provider>::validate_provider_config(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1218,23 +1040,16 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Configure" => {
                     #[allow(non_camel_case_types)]
                     struct ConfigureSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ConfigureRequest>
-                    for ConfigureSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::ConfigureRequest> for ConfigureSvc<T> {
                         type Response = super::ConfigureResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ConfigureRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::configure(&inner, request).await
-                            };
+                            let fut =
+                                async move { <T as Provider>::configure(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1263,21 +1078,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Stop" => {
                     #[allow(non_camel_case_types)]
                     struct StopSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::StopRequest>
-                    for StopSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::StopRequest> for StopSvc<T> {
                         type Response = super::StopResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::StopRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::stop(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::stop(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1306,23 +1115,19 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/ValidateResourceConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateResourceConfigSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ValidateResourceConfigRequest>
-                    for ValidateResourceConfigSvc<T> {
+                    impl<T: Provider>
+                        tonic::server::UnaryService<super::ValidateResourceConfigRequest>
+                        for ValidateResourceConfigSvc<T>
+                    {
                         type Response = super::ValidateResourceConfigResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ValidateResourceConfigRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Provider>::validate_resource_config(&inner, request)
-                                    .await
+                                <T as Provider>::validate_resource_config(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1352,23 +1157,19 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/UpgradeResourceState" => {
                     #[allow(non_camel_case_types)]
                     struct UpgradeResourceStateSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::UpgradeResourceStateRequest>
-                    for UpgradeResourceStateSvc<T> {
+                    impl<T: Provider>
+                        tonic::server::UnaryService<super::UpgradeResourceStateRequest>
+                        for UpgradeResourceStateSvc<T>
+                    {
                         type Response = super::UpgradeResourceStateResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::UpgradeResourceStateRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Provider>::upgrade_resource_state(&inner, request)
-                                    .await
+                                <T as Provider>::upgrade_resource_state(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1398,21 +1199,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Plan" => {
                     #[allow(non_camel_case_types)]
                     struct PlanSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::PlanRequest>
-                    for PlanSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::PlanRequest> for PlanSvc<T> {
                         type Response = super::PlanResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::PlanRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::plan(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::plan(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1441,21 +1236,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Create" => {
                     #[allow(non_camel_case_types)]
                     struct CreateSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::CreateRequest>
-                    for CreateSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::CreateRequest> for CreateSvc<T> {
                         type Response = super::CreateResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::CreateRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::create(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::create(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1484,21 +1273,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Read" => {
                     #[allow(non_camel_case_types)]
                     struct ReadSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::ReadRequest>
-                    for ReadSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::ReadRequest> for ReadSvc<T> {
                         type Response = super::ReadResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ReadRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::read(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::read(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1527,21 +1310,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Update" => {
                     #[allow(non_camel_case_types)]
                     struct UpdateSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::UpdateRequest>
-                    for UpdateSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::UpdateRequest> for UpdateSvc<T> {
                         type Response = super::UpdateResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::UpdateRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::update(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::update(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1570,21 +1347,15 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/Delete" => {
                     #[allow(non_camel_case_types)]
                     struct DeleteSvc<T: Provider>(pub Arc<T>);
-                    impl<T: Provider> tonic::server::UnaryService<super::DeleteRequest>
-                    for DeleteSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::DeleteRequest> for DeleteSvc<T> {
                         type Response = super::DeleteResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::DeleteRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move {
-                                <T as Provider>::delete(&inner, request).await
-                            };
+                            let fut = async move { <T as Provider>::delete(&inner, request).await };
                             Box::pin(fut)
                         }
                     }
@@ -1613,23 +1384,18 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/ImportResourceState" => {
                     #[allow(non_camel_case_types)]
                     struct ImportResourceStateSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ImportResourceStateRequest>
-                    for ImportResourceStateSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::ImportResourceStateRequest>
+                        for ImportResourceStateSvc<T>
+                    {
                         type Response = super::ImportResourceStateResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ImportResourceStateRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Provider>::import_resource_state(&inner, request)
-                                    .await
+                                <T as Provider>::import_resource_state(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1659,28 +1425,19 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/ValidateDataSourceConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateDataSourceConfigSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ValidateDataSourceConfigRequest>
-                    for ValidateDataSourceConfigSvc<T> {
+                    impl<T: Provider>
+                        tonic::server::UnaryService<super::ValidateDataSourceConfigRequest>
+                        for ValidateDataSourceConfigSvc<T>
+                    {
                         type Response = super::ValidateDataSourceConfigResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
-                            request: tonic::Request<
-                                super::ValidateDataSourceConfigRequest,
-                            >,
+                            request: tonic::Request<super::ValidateDataSourceConfigRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Provider>::validate_data_source_config(
-                                        &inner,
-                                        request,
-                                    )
-                                    .await
+                                <T as Provider>::validate_data_source_config(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -1710,15 +1467,11 @@ pub mod provider_server {
                 "/hemmer.provider.v1.Provider/ReadDataSource" => {
                     #[allow(non_camel_case_types)]
                     struct ReadDataSourceSvc<T: Provider>(pub Arc<T>);
-                    impl<
-                        T: Provider,
-                    > tonic::server::UnaryService<super::ReadDataSourceRequest>
-                    for ReadDataSourceSvc<T> {
+                    impl<T: Provider> tonic::server::UnaryService<super::ReadDataSourceRequest>
+                        for ReadDataSourceSvc<T>
+                    {
                         type Response = super::ReadDataSourceResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
+                        type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
                             &mut self,
                             request: tonic::Request<super::ReadDataSourceRequest>,
@@ -1752,25 +1505,19 @@ pub mod provider_server {
                     };
                     Box::pin(fut)
                 }
-                _ => {
-                    Box::pin(async move {
-                        let mut response = http::Response::new(
-                            tonic::body::Body::default(),
-                        );
-                        let headers = response.headers_mut();
-                        headers
-                            .insert(
-                                tonic::Status::GRPC_STATUS,
-                                (tonic::Code::Unimplemented as i32).into(),
-                            );
-                        headers
-                            .insert(
-                                http::header::CONTENT_TYPE,
-                                tonic::metadata::GRPC_CONTENT_TYPE,
-                            );
-                        Ok(response)
-                    })
-                }
+                _ => Box::pin(async move {
+                    let mut response = http::Response::new(tonic::body::Body::default());
+                    let headers = response.headers_mut();
+                    headers.insert(
+                        tonic::Status::GRPC_STATUS,
+                        (tonic::Code::Unimplemented as i32).into(),
+                    );
+                    headers.insert(
+                        http::header::CONTENT_TYPE,
+                        tonic::metadata::GRPC_CONTENT_TYPE,
+                    );
+                    Ok(response)
+                }),
             }
         }
     }
