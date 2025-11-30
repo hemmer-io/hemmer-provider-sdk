@@ -32,6 +32,34 @@ pub enum ProviderError {
     /// A gRPC transport error occurred.
     #[error("Transport error: {0}")]
     Transport(#[from] tonic::transport::Error),
+
+    /// Resource already exists (create conflict).
+    #[error("Resource already exists: {0}")]
+    AlreadyExists(String),
+
+    /// Permission denied (authentication/authorization failure).
+    #[error("Permission denied: {0}")]
+    PermissionDenied(String),
+
+    /// Quota or rate limit exceeded.
+    #[error("Resource exhausted: {0}")]
+    ResourceExhausted(String),
+
+    /// Service temporarily unavailable.
+    #[error("Service unavailable: {0}")]
+    Unavailable(String),
+
+    /// Operation timed out.
+    #[error("Deadline exceeded: {0}")]
+    DeadlineExceeded(String),
+
+    /// Operation failed due to current state (precondition not met).
+    #[error("Failed precondition: {0}")]
+    FailedPrecondition(String),
+
+    /// Operation not implemented.
+    #[error("Unimplemented: {0}")]
+    Unimplemented(String),
 }
 
 impl From<ProviderError> for tonic::Status {
@@ -48,6 +76,13 @@ impl From<ProviderError> for tonic::Status {
             ProviderError::Transport(err) => {
                 tonic::Status::unavailable(format!("Transport error: {}", err))
             }
+            ProviderError::AlreadyExists(msg) => tonic::Status::already_exists(msg),
+            ProviderError::PermissionDenied(msg) => tonic::Status::permission_denied(msg),
+            ProviderError::ResourceExhausted(msg) => tonic::Status::resource_exhausted(msg),
+            ProviderError::Unavailable(msg) => tonic::Status::unavailable(msg),
+            ProviderError::DeadlineExceeded(msg) => tonic::Status::deadline_exceeded(msg),
+            ProviderError::FailedPrecondition(msg) => tonic::Status::failed_precondition(msg),
+            ProviderError::Unimplemented(msg) => tonic::Status::unimplemented(msg),
         }
     }
 }
@@ -85,5 +120,60 @@ mod tests {
         let err = ProviderError::Sdk("test".to_string());
         let status: tonic::Status = err.into();
         assert_eq!(status.code(), tonic::Code::Internal);
+    }
+
+    #[test]
+    fn test_new_error_variants_display() {
+        let err = ProviderError::AlreadyExists("bucket-123".to_string());
+        assert_eq!(format!("{}", err), "Resource already exists: bucket-123");
+
+        let err = ProviderError::PermissionDenied("access forbidden".to_string());
+        assert_eq!(format!("{}", err), "Permission denied: access forbidden");
+
+        let err = ProviderError::ResourceExhausted("quota exceeded".to_string());
+        assert_eq!(format!("{}", err), "Resource exhausted: quota exceeded");
+
+        let err = ProviderError::Unavailable("service down".to_string());
+        assert_eq!(format!("{}", err), "Service unavailable: service down");
+
+        let err = ProviderError::DeadlineExceeded("timeout".to_string());
+        assert_eq!(format!("{}", err), "Deadline exceeded: timeout");
+
+        let err = ProviderError::FailedPrecondition("state mismatch".to_string());
+        assert_eq!(format!("{}", err), "Failed precondition: state mismatch");
+
+        let err = ProviderError::Unimplemented("feature not available".to_string());
+        assert_eq!(format!("{}", err), "Unimplemented: feature not available");
+    }
+
+    #[test]
+    fn test_new_error_variants_to_status() {
+        let err = ProviderError::AlreadyExists("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::AlreadyExists);
+
+        let err = ProviderError::PermissionDenied("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::PermissionDenied);
+
+        let err = ProviderError::ResourceExhausted("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::ResourceExhausted);
+
+        let err = ProviderError::Unavailable("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+
+        let err = ProviderError::DeadlineExceeded("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::DeadlineExceeded);
+
+        let err = ProviderError::FailedPrecondition("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+
+        let err = ProviderError::Unimplemented("test".to_string());
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::Unimplemented);
     }
 }
