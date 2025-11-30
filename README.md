@@ -251,6 +251,49 @@ if is_valid(&schema, &value) {
 }
 ```
 
+## Error Handling
+
+The SDK provides a comprehensive `ProviderError` enum that maps to appropriate gRPC status codes:
+
+```rust
+use hemmer_provider_sdk::ProviderError;
+
+// Resource not found (maps to NOT_FOUND)
+return Err(ProviderError::NotFound("instance-123 not found".to_string()));
+
+// Resource already exists (maps to ALREADY_EXISTS)
+return Err(ProviderError::AlreadyExists("bucket my-bucket already exists".to_string()));
+
+// Permission/auth errors (maps to PERMISSION_DENIED)
+return Err(ProviderError::PermissionDenied("insufficient permissions to delete resource".to_string()));
+
+// Rate limiting or quota errors (maps to RESOURCE_EXHAUSTED)
+return Err(ProviderError::ResourceExhausted("API rate limit exceeded".to_string()));
+
+// Temporary service issues (maps to UNAVAILABLE)
+return Err(ProviderError::Unavailable("service temporarily unavailable".to_string()));
+
+// Timeout errors (maps to DEADLINE_EXCEEDED)
+return Err(ProviderError::DeadlineExceeded("operation timed out after 30s".to_string()));
+
+// State precondition failures (maps to FAILED_PRECONDITION)
+return Err(ProviderError::FailedPrecondition("resource must be stopped before deletion".to_string()));
+
+// Unimplemented operations (maps to UNIMPLEMENTED)
+return Err(ProviderError::Unimplemented("import not supported for this resource type".to_string()));
+
+// Validation errors (maps to INVALID_ARGUMENT)
+return Err(ProviderError::Validation("invalid instance size".to_string()));
+
+// Configuration errors (maps to FAILED_PRECONDITION)
+return Err(ProviderError::Configuration("missing required API key".to_string()));
+```
+
+Using the appropriate error variant enables:
+- **Better UX**: Users see meaningful error messages
+- **Retry Logic**: Clients can retry on `Unavailable` but not `NotFound`
+- **Debugging**: Error codes help identify root causes quickly
+
 ## Testing
 
 The SDK includes a test harness for provider implementations:

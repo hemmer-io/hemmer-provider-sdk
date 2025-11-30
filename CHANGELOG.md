@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Additional `ProviderError` variants for comprehensive gRPC status mapping (#35)
+  - `AlreadyExists` - Resource already exists (create conflict)
+  - `PermissionDenied` - Permission denied (authentication/authorization failure)
+  - `ResourceExhausted` - Quota or rate limit exceeded
+  - `Unavailable` - Service temporarily unavailable
+  - `DeadlineExceeded` - Operation timed out
+  - `FailedPrecondition` - Operation failed due to current state (precondition not met)
+  - `Unimplemented` - Operation not implemented
+  - Updated `From<ProviderError> for tonic::Status` with new variant mappings
+  - Comprehensive test coverage for all new error variants
+
 ## [0.2.1] - 2025-11-29
 
 ### Added
