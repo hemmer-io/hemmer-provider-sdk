@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-30
+
 ### Added
 
 - Additional `ProviderError` variants for comprehensive gRPC status mapping (#35)
@@ -19,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Unimplemented` - Operation not implemented
   - Updated `From<ProviderError> for tonic::Status` with new variant mappings
   - Comprehensive test coverage for all new error variants
+- Error Handling section in README with usage examples for all error variants
 
 ## [0.2.1] - 2025-11-29
 
@@ -66,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for state upgrades and resource imports
 - Data source support
 
+[0.3.0]: https://github.com/hemmer-io/hemmer-provider-sdk/releases/tag/v0.3.0
 [0.2.1]: https://github.com/hemmer-io/hemmer-provider-sdk/releases/tag/v0.2.1
 [0.2.0]: https://github.com/hemmer-io/hemmer-provider-sdk/releases/tag/v0.2.0
 [0.1.0]: https://github.com/hemmer-io/hemmer-provider-sdk/releases/tag/v0.1.0
