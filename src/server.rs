@@ -216,10 +216,10 @@ impl<P: ProviderService> ProviderGrpcService<P> {
                 severity: match d.severity {
                     DiagnosticSeverity::Error => {
                         crate::generated::diagnostic::Severity::Error as i32
-                    }
+                    },
                     DiagnosticSeverity::Warning => {
                         crate::generated::diagnostic::Severity::Warning as i32
-                    }
+                    },
                 },
                 summary: d.summary,
                 detail: d.detail.unwrap_or_default(),
@@ -275,16 +275,16 @@ fn block_to_proto(block: &crate::schema::Block) -> crate::generated::Block {
                 nesting_mode: match nested.nesting_mode {
                     crate::schema::BlockNestingMode::Single => {
                         crate::generated::nested_block::NestingMode::Single as i32
-                    }
+                    },
                     crate::schema::BlockNestingMode::List => {
                         crate::generated::nested_block::NestingMode::List as i32
-                    }
+                    },
                     crate::schema::BlockNestingMode::Set => {
                         crate::generated::nested_block::NestingMode::Set as i32
-                    }
+                    },
                     crate::schema::BlockNestingMode::Map => {
                         crate::generated::nested_block::NestingMode::Map as i32
-                    }
+                    },
                 },
                 min_items: nested.min_items as i32,
                 max_items: nested.max_items as i32,
@@ -389,7 +389,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.diagnostics_to_proto(diagnostics),
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(error = %e, "ValidateProviderConfig failed");
                 Ok(tonic::Response::new(
@@ -397,7 +397,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 
@@ -426,13 +426,13 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                 Ok(tonic::Response::new(crate::generated::ConfigureResponse {
                     diagnostics: self.diagnostics_to_proto(diagnostics),
                 }))
-            }
+            },
             Err(e) => {
                 error!(error = %e, "Configure failed");
                 Ok(tonic::Response::new(crate::generated::ConfigureResponse {
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -448,13 +448,13 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                 Ok(tonic::Response::new(crate::generated::StopResponse {
                     error: String::new(),
                 }))
-            }
+            },
             Err(e) => {
                 error!(error = %e, "Stop failed");
                 Ok(tonic::Response::new(crate::generated::StopResponse {
                     error: e.to_string(),
                 }))
-            }
+            },
         }
     }
 
@@ -487,7 +487,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.diagnostics_to_proto(diagnostics),
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "ValidateResourceConfig failed");
                 Ok(tonic::Response::new(
@@ -495,7 +495,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 
@@ -522,7 +522,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: vec![],
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, version = req.version, error = %e, "UpgradeResourceState failed");
                 Ok(tonic::Response::new(
@@ -531,7 +531,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 
@@ -572,7 +572,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                     requires_replace: result.requires_replace,
                     diagnostics: vec![],
                 }))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "Plan failed");
                 Ok(tonic::Response::new(crate::generated::PlanResponse {
@@ -581,7 +581,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                     requires_replace: false,
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -606,14 +606,14 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                     state: serde_json::to_vec(&state).unwrap_or_default(),
                     diagnostics: vec![],
                 }))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "Create failed");
                 Ok(tonic::Response::new(crate::generated::CreateResponse {
                     state: vec![],
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -634,14 +634,14 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                     state: serde_json::to_vec(&state).unwrap_or_default(),
                     diagnostics: vec![],
                 }))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "Read failed");
                 Ok(tonic::Response::new(crate::generated::ReadResponse {
                     state: vec![],
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -668,14 +668,14 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                     state: serde_json::to_vec(&state).unwrap_or_default(),
                     diagnostics: vec![],
                 }))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "Update failed");
                 Ok(tonic::Response::new(crate::generated::UpdateResponse {
                     state: vec![],
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -699,13 +699,13 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                 Ok(tonic::Response::new(crate::generated::DeleteResponse {
                     diagnostics: vec![],
                 }))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, error = %e, "Delete failed");
                 Ok(tonic::Response::new(crate::generated::DeleteResponse {
                     diagnostics: self.error_to_diagnostics(e),
                 }))
-            }
+            },
         }
     }
 
@@ -741,7 +741,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: vec![],
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(resource_type = %req.resource_type, id = %req.id, error = %e, "ImportResourceState failed");
                 Ok(tonic::Response::new(
@@ -750,7 +750,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 
@@ -783,7 +783,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.diagnostics_to_proto(diagnostics),
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(data_source_type = %req.data_source_type, error = %e, "ValidateDataSourceConfig failed");
                 Ok(tonic::Response::new(
@@ -791,7 +791,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 
@@ -817,7 +817,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: vec![],
                     },
                 ))
-            }
+            },
             Err(e) => {
                 error!(data_source_type = %req.data_source_type, error = %e, "ReadDataSource failed");
                 Ok(tonic::Response::new(
@@ -826,7 +826,7 @@ impl<P: ProviderService> crate::generated::provider_server::Provider for Provide
                         diagnostics: self.error_to_diagnostics(e),
                     },
                 ))
-            }
+            },
         }
     }
 }
@@ -989,17 +989,17 @@ async fn serve_on_listener<P: ProviderService>(
     match shutdown_result {
         Ok(Ok(())) => {
             info!("Server shutdown complete");
-        }
+        },
         Ok(Err(e)) => {
             error!(error = %e, "Server error during shutdown");
             return Err(e.into());
-        }
+        },
         Err(_) => {
             warn!(
                 timeout = ?options.shutdown_timeout,
                 "Shutdown timeout exceeded, forcing shutdown"
             );
-        }
+        },
     }
 
     // Call the provider's stop() method

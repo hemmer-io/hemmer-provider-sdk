@@ -83,7 +83,7 @@ fn validate_block(block: &Block, value: &Value, path: &str, diagnostics: &mut Ve
         Value::Null => {
             // Null is valid for optional blocks, but we can't validate further
             return;
-        }
+        },
         _ => {
             diagnostics.push(
                 Diagnostic::error("Expected object")
@@ -91,7 +91,7 @@ fn validate_block(block: &Block, value: &Value, path: &str, diagnostics: &mut Ve
                     .with_attribute_if_not_empty(path),
             );
             return;
-        }
+        },
     };
 
     // Validate attributes
@@ -131,11 +131,11 @@ fn validate_attribute(
                 );
             }
             // Optional attributes can be missing/null
-        }
+        },
         Some(v) => {
             // Validate type
             validate_attribute_type(&attr.attr_type, v, path, diagnostics);
-        }
+        },
     }
 }
 
@@ -150,22 +150,22 @@ fn validate_attribute_type(
             if !value.is_string() {
                 diagnostics.push(type_error(path, "string", value));
             }
-        }
+        },
         AttributeType::Int64 => {
             if !is_int64(value) {
                 diagnostics.push(type_error(path, "int64", value));
             }
-        }
+        },
         AttributeType::Float64 => {
             if !value.is_number() {
                 diagnostics.push(type_error(path, "float64", value));
             }
-        }
+        },
         AttributeType::Bool => {
             if !value.is_boolean() {
                 diagnostics.push(type_error(path, "bool", value));
             }
-        }
+        },
         AttributeType::List(element_type) => {
             if let Some(arr) = value.as_array() {
                 for (i, elem) in arr.iter().enumerate() {
@@ -175,7 +175,7 @@ fn validate_attribute_type(
             } else {
                 diagnostics.push(type_error(path, "list", value));
             }
-        }
+        },
         AttributeType::Set(element_type) => {
             // Sets are represented as arrays in JSON
             if let Some(arr) = value.as_array() {
@@ -186,7 +186,7 @@ fn validate_attribute_type(
             } else {
                 diagnostics.push(type_error(path, "set", value));
             }
-        }
+        },
         AttributeType::Map(value_type) => {
             if let Some(obj) = value.as_object() {
                 for (key, val) in obj {
@@ -196,17 +196,17 @@ fn validate_attribute_type(
             } else {
                 diagnostics.push(type_error(path, "map", value));
             }
-        }
+        },
         AttributeType::Object(attrs) => {
             if let Some(obj) = value.as_object() {
                 validate_object_type(attrs, obj, path, diagnostics);
             } else {
                 diagnostics.push(type_error(path, "object", value));
             }
-        }
+        },
         AttributeType::Dynamic => {
             // Dynamic accepts any value
-        }
+        },
     }
 }
 
@@ -235,17 +235,17 @@ fn validate_nested_block(
     match nested.nesting_mode {
         BlockNestingMode::Single => {
             validate_single_block(nested, value, path, diagnostics);
-        }
+        },
         BlockNestingMode::List => {
             validate_list_block(nested, value, path, diagnostics);
-        }
+        },
         BlockNestingMode::Set => {
             // Sets are validated the same as lists for our purposes
             validate_list_block(nested, value, path, diagnostics);
-        }
+        },
         BlockNestingMode::Map => {
             validate_map_block(nested, value, path, diagnostics);
-        }
+        },
     }
 }
 
@@ -264,10 +264,10 @@ fn validate_single_block(
                         .with_attribute(path),
                 );
             }
-        }
+        },
         Some(v) => {
             validate_block(&nested.block, v, path, diagnostics);
-        }
+        },
     }
 }
 
@@ -288,7 +288,7 @@ fn validate_list_block(
                     .with_attribute(path),
                 );
             }
-        }
+        },
         Some(Value::Array(arr)) => {
             let len = arr.len() as u32;
 
@@ -319,14 +319,14 @@ fn validate_list_block(
                 let item_path = format!("{}.{}", path, i);
                 validate_block(&nested.block, item, &item_path, diagnostics);
             }
-        }
+        },
         Some(v) => {
             diagnostics.push(
                 Diagnostic::error(format!("Expected list for block '{}'", path))
                     .with_detail(format!("Got {}", value_type_name(v)))
                     .with_attribute(path),
             );
-        }
+        },
     }
 }
 
@@ -347,7 +347,7 @@ fn validate_map_block(
                     .with_attribute(path),
                 );
             }
-        }
+        },
         Some(Value::Object(obj)) => {
             let len = obj.len() as u32;
 
@@ -378,14 +378,14 @@ fn validate_map_block(
                 let item_path = format!("{}.{}", path, key);
                 validate_block(&nested.block, item, &item_path, diagnostics);
             }
-        }
+        },
         Some(v) => {
             diagnostics.push(
                 Diagnostic::error(format!("Expected map for block '{}'", path))
                     .with_detail(format!("Got {}", value_type_name(v)))
                     .with_attribute(path),
             );
-        }
+        },
     }
 }
 
@@ -424,7 +424,7 @@ fn is_int64(value: &Value) -> bool {
             } else {
                 false
             }
-        }
+        },
         _ => false,
     }
 }

@@ -60,6 +60,69 @@ pub enum ProviderError {
     /// Operation not implemented.
     #[error("Unimplemented: {0}")]
     Unimplemented(String),
+
+    /// Invalid request from client.
+    #[error("Invalid request: {0}")]
+    InvalidRequest(String),
+}
+
+impl ProviderError {
+    /// Get the error message as a string.
+    ///
+    /// Returns a reference to the error message for any variant.
+    pub fn message(&self) -> &str {
+        // thiserror's Display implementation formats the message
+        // For structured access, we match on each variant
+        match self {
+            Self::NotFound(msg) => msg,
+            Self::Validation(msg) => msg,
+            Self::Sdk(msg) => msg,
+            Self::Configuration(msg) => msg,
+            Self::UnknownResource(msg) => msg,
+            Self::Serialization(_err) => "serialization error (see Debug output)",
+            Self::Transport(_err) => "transport error (see Debug output)",
+            Self::AlreadyExists(msg) => msg,
+            Self::PermissionDenied(msg) => msg,
+            Self::ResourceExhausted(msg) => msg,
+            Self::Unavailable(msg) => msg,
+            Self::DeadlineExceeded(msg) => msg,
+            Self::FailedPrecondition(msg) => msg,
+            Self::Unimplemented(msg) => msg,
+            Self::InvalidRequest(msg) => msg,
+        }
+    }
+
+    // Compatibility aliases for generator v0.3.5
+
+    /// Alias for [`ProviderError::Configuration`] for generator compatibility.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hemmer_provider_sdk::ProviderError;
+    ///
+    /// let err = ProviderError::ConfigurationError("invalid config".to_string());
+    /// assert_eq!(err.message(), "invalid config");
+    /// ```
+    #[allow(non_snake_case)]
+    pub fn ConfigurationError(msg: String) -> Self {
+        Self::Configuration(msg)
+    }
+
+    /// Alias for [`ProviderError::Sdk`] for generator compatibility.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hemmer_provider_sdk::ProviderError;
+    ///
+    /// let err = ProviderError::SdkError("sdk error".to_string());
+    /// assert_eq!(err.message(), "sdk error");
+    /// ```
+    #[allow(non_snake_case)]
+    pub fn SdkError(msg: String) -> Self {
+        Self::Sdk(msg)
+    }
 }
 
 impl From<ProviderError> for tonic::Status {
@@ -72,10 +135,10 @@ impl From<ProviderError> for tonic::Status {
             ProviderError::Sdk(msg) => tonic::Status::internal(msg),
             ProviderError::Serialization(err) => {
                 tonic::Status::invalid_argument(format!("Serialization error: {}", err))
-            }
+            },
             ProviderError::Transport(err) => {
                 tonic::Status::unavailable(format!("Transport error: {}", err))
-            }
+            },
             ProviderError::AlreadyExists(msg) => tonic::Status::already_exists(msg),
             ProviderError::PermissionDenied(msg) => tonic::Status::permission_denied(msg),
             ProviderError::ResourceExhausted(msg) => tonic::Status::resource_exhausted(msg),
@@ -83,6 +146,7 @@ impl From<ProviderError> for tonic::Status {
             ProviderError::DeadlineExceeded(msg) => tonic::Status::deadline_exceeded(msg),
             ProviderError::FailedPrecondition(msg) => tonic::Status::failed_precondition(msg),
             ProviderError::Unimplemented(msg) => tonic::Status::unimplemented(msg),
+            ProviderError::InvalidRequest(msg) => tonic::Status::invalid_argument(msg),
         }
     }
 }
@@ -175,5 +239,39 @@ mod tests {
         let err = ProviderError::Unimplemented("test".to_string());
         let status: tonic::Status = err.into();
         assert_eq!(status.code(), tonic::Code::Unimplemented);
+    }
+
+    #[test]
+    fn test_invalid_request_variant() {
+        let err = ProviderError::InvalidRequest("bad request".to_string());
+        assert_eq!(format!("{}", err), "Invalid request: bad request");
+
+        let status: tonic::Status = err.into();
+        assert_eq!(status.code(), tonic::Code::InvalidArgument);
+    }
+
+    #[test]
+    fn test_message_method() {
+        let err = ProviderError::NotFound("resource-123".to_string());
+        assert_eq!(err.message(), "resource-123");
+
+        let err = ProviderError::Configuration("invalid config".to_string());
+        assert_eq!(err.message(), "invalid config");
+
+        let err = ProviderError::InvalidRequest("bad request".to_string());
+        assert_eq!(err.message(), "bad request");
+    }
+
+    #[test]
+    fn test_compatibility_aliases() {
+        // Test ConfigurationError alias
+        let err = ProviderError::ConfigurationError("config error".to_string());
+        assert_eq!(err.message(), "config error");
+        assert_eq!(format!("{}", err), "Configuration error: config error");
+
+        // Test SdkError alias
+        let err = ProviderError::SdkError("sdk error".to_string());
+        assert_eq!(err.message(), "sdk error");
+        assert_eq!(format!("{}", err), "SDK error: sdk error");
     }
 }

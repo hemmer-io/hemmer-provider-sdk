@@ -963,7 +963,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/GetSchema" => {
                     #[allow(non_camel_case_types)]
                     struct GetSchemaSvc<T: Provider>(pub Arc<T>);
@@ -1001,7 +1001,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/ValidateProviderConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateProviderConfigSvc<T: Provider>(pub Arc<T>);
@@ -1043,7 +1043,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Configure" => {
                     #[allow(non_camel_case_types)]
                     struct ConfigureSvc<T: Provider>(pub Arc<T>);
@@ -1081,7 +1081,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Stop" => {
                     #[allow(non_camel_case_types)]
                     struct StopSvc<T: Provider>(pub Arc<T>);
@@ -1118,7 +1118,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/ValidateResourceConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateResourceConfigSvc<T: Provider>(pub Arc<T>);
@@ -1160,7 +1160,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/UpgradeResourceState" => {
                     #[allow(non_camel_case_types)]
                     struct UpgradeResourceStateSvc<T: Provider>(pub Arc<T>);
@@ -1202,7 +1202,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Plan" => {
                     #[allow(non_camel_case_types)]
                     struct PlanSvc<T: Provider>(pub Arc<T>);
@@ -1239,7 +1239,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Create" => {
                     #[allow(non_camel_case_types)]
                     struct CreateSvc<T: Provider>(pub Arc<T>);
@@ -1276,7 +1276,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Read" => {
                     #[allow(non_camel_case_types)]
                     struct ReadSvc<T: Provider>(pub Arc<T>);
@@ -1313,7 +1313,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Update" => {
                     #[allow(non_camel_case_types)]
                     struct UpdateSvc<T: Provider>(pub Arc<T>);
@@ -1350,7 +1350,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/Delete" => {
                     #[allow(non_camel_case_types)]
                     struct DeleteSvc<T: Provider>(pub Arc<T>);
@@ -1387,7 +1387,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/ImportResourceState" => {
                     #[allow(non_camel_case_types)]
                     struct ImportResourceStateSvc<T: Provider>(pub Arc<T>);
@@ -1428,7 +1428,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/ValidateDataSourceConfig" => {
                     #[allow(non_camel_case_types)]
                     struct ValidateDataSourceConfigSvc<T: Provider>(pub Arc<T>);
@@ -1470,7 +1470,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 "/hemmer.provider.v1.Provider/ReadDataSource" => {
                     #[allow(non_camel_case_types)]
                     struct ReadDataSourceSvc<T: Provider>(pub Arc<T>);
@@ -1511,7 +1511,7 @@ pub mod provider_server {
                         Ok(res)
                     };
                     Box::pin(fut)
-                }
+                },
                 _ => Box::pin(async move {
                     let mut response = http::Response::new(tonic::body::Body::default());
                     let headers = response.headers_mut();

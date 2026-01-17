@@ -380,7 +380,7 @@ impl std::fmt::Display for TestError {
                     writeln!(f)?;
                 }
                 Ok(())
-            }
+            },
             TestError::Provider(e) => write!(f, "Provider error: {}", e),
         }
     }
@@ -609,7 +609,7 @@ mod tests {
                         vec![AttributeChange::added("id", json!("generated-id"))],
                         false,
                     ))
-                }
+                },
                 Some(prior) => {
                     // Update - check if name changed
                     if prior.get("name") != proposed_state.get("name") {
@@ -629,7 +629,7 @@ mod tests {
                     } else {
                         Ok(PlanResult::no_change(prior))
                     }
-                }
+                },
             }
         }
 
