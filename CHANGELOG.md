@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Generator v0.3.5 compatibility features (#38)
+  - `ProviderError::InvalidRequest` variant for invalid client requests
+  - `ProviderError::message()` method to get error messages as strings
+  - `ProviderError::ConfigurationError()` compatibility alias for `ProviderError::Configuration`
+  - `ProviderError::SdkError()` compatibility alias for `ProviderError::Sdk`
+  - `BlockType` type alias for `BlockNestingMode` for generator compatibility
+  - `NestingMode` type alias for `BlockNestingMode` for generator compatibility
+  - `Result<T>` type alias as shorthand for `std::result::Result<T, ProviderError>`
+  - Comprehensive test coverage for all new features
+
 ## [0.3.0] - 2025-11-30
 
 ### Added

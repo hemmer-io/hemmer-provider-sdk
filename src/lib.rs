@@ -148,6 +148,26 @@ pub use types::{
 };
 pub use validation::{is_valid, validate, validate_result};
 
+/// A convenience type alias for Results with [`ProviderError`].
+///
+/// This allows provider implementations to use `Result<T>` instead of
+/// `Result<T, ProviderError>` for brevity.
+///
+/// # Examples
+///
+/// ```
+/// use hemmer_provider_sdk::{Result, ProviderError};
+///
+/// fn do_something() -> Result<String> {
+///     Ok("success".to_string())
+/// }
+///
+/// fn do_something_else() -> Result<i32> {
+///     Err(ProviderError::NotFound("not found".to_string()))
+/// }
+/// ```
+pub type Result<T> = std::result::Result<T, ProviderError>;
+
 // Re-export testing utilities
 pub use testing::{ProviderTester, TestError};
 

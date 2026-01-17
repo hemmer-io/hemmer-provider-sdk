@@ -223,6 +223,16 @@ pub enum BlockNestingMode {
     Map,
 }
 
+/// Type alias for [`BlockNestingMode`] for generator compatibility.
+///
+/// This is an alias to maintain compatibility with hemmer-provider-generator v0.3.5.
+pub type NestingMode = BlockNestingMode;
+
+/// Type alias for [`BlockNestingMode`] for generator compatibility.
+///
+/// This is an alias to maintain compatibility with hemmer-provider-generator v0.3.5.
+pub type BlockType = BlockNestingMode;
+
 /// A nested block within a schema.
 ///
 /// Blocks are used for complex nested structures that have their own
