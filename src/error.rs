@@ -72,10 +72,10 @@ impl From<ProviderError> for tonic::Status {
             ProviderError::Sdk(msg) => tonic::Status::internal(msg),
             ProviderError::Serialization(err) => {
                 tonic::Status::invalid_argument(format!("Serialization error: {}", err))
-            }
+            },
             ProviderError::Transport(err) => {
                 tonic::Status::unavailable(format!("Transport error: {}", err))
-            }
+            },
             ProviderError::AlreadyExists(msg) => tonic::Status::already_exists(msg),
             ProviderError::PermissionDenied(msg) => tonic::Status::permission_denied(msg),
             ProviderError::ResourceExhausted(msg) => tonic::Status::resource_exhausted(msg),

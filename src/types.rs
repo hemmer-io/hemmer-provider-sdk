@@ -159,7 +159,7 @@ impl PlanResult {
                     changes,
                     requires_replace: false,
                 }
-            }
+            },
             Some(prior_state) => {
                 let changes = compute_json_diff("", prior_state, proposed);
                 Self {
@@ -167,7 +167,7 @@ impl PlanResult {
                     changes,
                     requires_replace: false,
                 }
-            }
+            },
         }
     }
 }
@@ -192,15 +192,15 @@ fn collect_all_fields(prefix: &str, value: &serde_json::Value) -> Vec<AttributeC
                     Value::Object(_) | Value::Array(_) => {
                         // Recursively collect nested fields
                         changes.extend(collect_all_fields(&path, val));
-                    }
+                    },
                     _ => {
                         // Leaf value
                         changes.push(AttributeChange::added(path, val.clone()));
-                    }
+                    },
                 }
             }
             changes
-        }
+        },
         Value::Array(arr) => {
             let mut changes = Vec::new();
             for (idx, val) in arr.iter().enumerate() {
@@ -213,14 +213,14 @@ fn collect_all_fields(prefix: &str, value: &serde_json::Value) -> Vec<AttributeC
                 match val {
                     Value::Object(_) | Value::Array(_) => {
                         changes.extend(collect_all_fields(&path, val));
-                    }
+                    },
                     _ => {
                         changes.push(AttributeChange::added(path, val.clone()));
-                    }
+                    },
                 }
             }
             changes
-        }
+        },
         _ => {
             // Scalar value at root
             if !prefix.is_empty() {
@@ -228,7 +228,7 @@ fn collect_all_fields(prefix: &str, value: &serde_json::Value) -> Vec<AttributeC
             } else {
                 vec![]
             }
-        }
+        },
     }
 }
 
@@ -279,7 +279,7 @@ fn compute_json_diff(
                                         prior_val,
                                         proposed_val,
                                     ));
-                                }
+                                },
                                 _ => {
                                     // Different types or different leaf values
                                     changes.push(AttributeChange::modified(
@@ -287,10 +287,10 @@ fn compute_json_diff(
                                         prior_val.clone(),
                                         proposed_val.clone(),
                                     ));
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                     (Some(prior_val), None) => {
                         // Field was removed
                         match prior_val {
@@ -302,32 +302,32 @@ fn compute_json_diff(
                                         change.after.unwrap(),
                                     ));
                                 }
-                            }
+                            },
                             _ => {
                                 changes.push(AttributeChange::removed(path, prior_val.clone()));
-                            }
+                            },
                         }
-                    }
+                    },
                     (None, Some(proposed_val)) => {
                         // Field was added
                         match proposed_val {
                             Value::Object(_) | Value::Array(_) => {
                                 // Recursively mark all nested fields as added
                                 changes.extend(collect_all_fields(&path, proposed_val));
-                            }
+                            },
                             _ => {
                                 changes.push(AttributeChange::added(path, proposed_val.clone()));
-                            }
+                            },
                         }
-                    }
+                    },
                     (None, None) => {
                         // Should never happen
-                    }
+                    },
                 }
             }
 
             changes
-        }
+        },
         // Both are arrays - compare elements
         (Value::Array(prior_arr), Value::Array(proposed_arr)) => {
             let mut changes = Vec::new();
@@ -352,17 +352,17 @@ fn compute_json_diff(
                                         prior_val,
                                         proposed_val,
                                     ));
-                                }
+                                },
                                 _ => {
                                     changes.push(AttributeChange::modified(
                                         path,
                                         prior_val.clone(),
                                         proposed_val.clone(),
                                     ));
-                                }
+                                },
                             }
                         }
-                    }
+                    },
                     (Some(prior_val), None) => {
                         // Element was removed from array
                         match prior_val {
@@ -373,31 +373,31 @@ fn compute_json_diff(
                                         change.after.unwrap(),
                                     ));
                                 }
-                            }
+                            },
                             _ => {
                                 changes.push(AttributeChange::removed(path, prior_val.clone()));
-                            }
+                            },
                         }
-                    }
+                    },
                     (None, Some(proposed_val)) => {
                         // Element was added to array
                         match proposed_val {
                             Value::Object(_) | Value::Array(_) => {
                                 changes.extend(collect_all_fields(&path, proposed_val));
-                            }
+                            },
                             _ => {
                                 changes.push(AttributeChange::added(path, proposed_val.clone()));
-                            }
+                            },
                         }
-                    }
+                    },
                     (None, None) => {
                         // Should never happen
-                    }
+                    },
                 }
             }
 
             changes
-        }
+        },
         // Different types or different scalar values
         _ => {
             if !prefix.is_empty() {
@@ -414,7 +414,7 @@ fn compute_json_diff(
                     proposed.clone(),
                 )]
             }
-        }
+        },
     }
 }
 

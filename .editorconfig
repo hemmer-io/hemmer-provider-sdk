@@ -1,0 +1,59 @@
+# EditorConfig for Hemmer
+# https://editorconfig.org
+#
+# This file ensures consistent coding styles across different editors and IDEs
+
+# Top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Rust source files
+[*.rs]
+indent_size = 4
+max_line_length = 100
+
+# TOML configuration files
+[*.toml]
+indent_size = 2
+
+# YAML files (GitHub Actions, etc.)
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON files
+[*.json]
+indent_size = 2
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+max_line_length = 120
+
+# JCL configuration files
+[*.{jcl,jcf}]
+indent_size = 4
+
+# Shell scripts
+[*.sh]
+indent_size = 2
+end_of_line = lf
+
+# Makefiles must use tabs
+[Makefile]
+indent_style = tab
+
+# Batch files (Windows) should use CRLF
+[*.{bat,cmd}]
+end_of_line = crlf
+
+# Go files (if any)
+[*.go]
+indent_style = tab
